@@ -18,13 +18,17 @@ CHIP PC {
     PARTS:
     // Put your code here:
 
+    //loadIN
+    Or (a=load, b=inc, out=or1);
+    Or (a=or1, b=reset, out=loadIN);
+
     //Mux
     Inc16 (in=outBF, out=outINC);
-    Mux16 (a=outBF, b=outINC, sel=inc, out=mux0);
+    Mux16 (a[0..15]=false, b=outINC, sel=inc, out=mux0);
     Mux16 (a=mux0, b=in, sel=load, out=mux1);
     Mux16 (a=mux1, b[0..15]=false, sel=reset, out=regIN);
 
     //Regisiter
-    Register(in=regIN, load=true, out=outBF, out=out);
+    Register(in=regIN, load=loadIN, out=outBF, out=out);
 
 }
