@@ -11,7 +11,14 @@
 // "white" in every pixel;
 // the screen should remain fully clear as long as no key is pressed.
 // Put your code here.
-	
+
+	//init
+	@color
+	M=0
+	@index
+	M=0
+
+	//*Main Loop*//
 	(LOOP)
 	//Read input
 	@24576
@@ -26,24 +33,50 @@
 	@LOOP
 	0			;JMP
 
-	//Set White
+	//*Set White*//
 	(WHITE)
 	@0
 	D=A
-	@R1
+	@color
 	M=D
-	@SCREEN
-	M=0
-	@ENDLOOP
+	@FILL
 	0			;JMP
 
-	//Set Black
+	//*Set Black*//
 	(BLACK)
-	@1
+	@32767 //you can't @65535, because @ can set only 15bits
 	D=A
-	@R1
+	@32767
+	D=D+A
+	@1
+	D=D+A
+	@color
 	M=D
+	@FILL
+	0			;JMP
+
+	//*Fill SCREEN*//
+	(FILL)
 	@SCREEN
-	M=1
+	D=A
+	@index
+	M=D
+	//fill all screen
+	(FLOOP)
+	@color
+	D=M
+	@index
+	A=M
+	M=D
+	//increment
+	@index
+	M=M+1
+	//judge refill or break
+	@24575 	//16384 + 8192 - 1= 24575
+	D=A
+	@index
+	D=D-M
+	@FLOOP
+	D			;JGE
 	@ENDLOOP
 	0			;JMP

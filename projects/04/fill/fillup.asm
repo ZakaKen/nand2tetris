@@ -6,11 +6,10 @@
 	@SCREEN
 	M=1
 
-	@SCREEN
+	@0x0100
 	D=A
-	@100
-	D=D+A
-	@D
+	@SCREEN
+	A=A+D
 	M=1
 	D=A
 
