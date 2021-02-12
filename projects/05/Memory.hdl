@@ -28,4 +28,18 @@ CHIP Memory {
 
     PARTS:
     // Put your code here:
+
+    //0000 0000 0000 0000 - 0011 1111 1111 1111 : Data Memory
+    //0100 0000 0000 0000 - 0101 1111 1111 1111 : Screen
+    //0110 0000 0000 0000 : Keyboard
+
+    DMux (in=load, sel=address[14], a=loadRAM, b=loadSC);
+
+    RAM16K (in=in, load=loadRAM, address=address[0..13], out=outRAM);
+    Screen (in=in, load=loadSC, address=address[0..12], out=outSC);
+    Keyboard (out=outKY);
+
+    Mux16 (a=outSC, b=outKY, sel=address[13], out=outDEV);
+    Mux16 (a=outRAM, b=outDEV, sel=address[14], out=out);
+    
 }

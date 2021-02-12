@@ -40,4 +40,43 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+
+    //Decode
+    Mux16(a[0..4]=false, a[5]=true, a[6..15]=false, b=instruction, sel=instruction[15],
+          out[0]=j3, out[1]=j2, out[2]=j1, out[3]=writeM, out[4]=d2, out[5]=d1,
+	  out[6]=c6, out[7]=c5, out[8]=c4, out[9]=c3, out[10]=c2, out[11]=c1,
+	  out[12]=a1, out[15]=AorC);
+
+    //instruction or ALUout
+    Mux16(a=instruction, b=ALUout, sel=AorC, out=InstOrALU);
+
+    //Aregister
+    ARegister (in=InstOrALU, load=d1, out=AReg, out[0..14]=addressM);
+
+    //Dregister
+    DRegister (in=ALUout, load=d2, out=DReg);
+
+    //A or M
+    Mux16 (a=AReg, b=inM, sel=a1, out=AorM);
+
+    //ALU
+    ALU (x=DReg, y=AorM, zx=c1, nx=c2, zy=c3, ny=c4, f=c5, no=c6,
+	 out=ALUout, out=outM,  zr=zr, ng=ng);
+
+    //PCload
+    //ps : ALUout > 0
+    Not (in=zr, out=nzr);
+    Not (in=ng, out=nng);
+    And (a=nzr, b=nng, out=ps);
+    And (a=j1, b=ng, out=FlagJ1);
+    And (a=j2, b=zr, out=FlagJ2);
+    And (a=j3, b=ps, out=FlagJ3);
+    Or (a=FlagJ1, b=FlagJ2, out=FlagJ1J2);
+    Or (a=FlagJ1J2, b=FlagJ3, out=loadPC);
+    Not(in=loadPC, out=incPC);
+
+    //PC
+    PC(in=AReg, load=loadPC, inc=incPC, reset=reset, out[0..14]=pc);
+    
+	 
 }
