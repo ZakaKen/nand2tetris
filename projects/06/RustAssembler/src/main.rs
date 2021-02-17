@@ -1,43 +1,49 @@
 use std::env;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::io::prelude::*;
+use std::io::{BufWriter, Write};
+mod Parser;
+mod Code;
+
 
 fn main(){
+    //Get args and new instance:codes
     let args: Vec<String> = env::args().collect();
     let filename = &args[1];
-    println!("In file {}", filename);
+    let mut codes = Parser::CodeReader::new(filename.to_string());
 
-    let f = File::open(filename).expect("file not found");
-    let reader = BufReader::new(f);
-    let mut codes : Vec<String> =Vec::new();
-
-    /*
-    let mut counter = 0;
-    reader.lines().for_each(|_| counter += 1);
-    println!("{}", counter);
-    */
-    
-    //read and push datas to vector
-    for line in reader.lines(){
-	let line = line.unwrap();
-
-	//if vacant line
-	if line.len() >0 {
-	    if line.contains("//") {
-		println!("{}", "comment out !!");
-	    }
-	    codes.push(line);
-	}
-    }
+    //create out file
+    let trimed: Vec<&str> = filename.split(".").collect();
+    let of_name: String = trimed[0].to_string() + ".hack";
+    let mut writer = BufWriter::new(File::create(of_name).unwrap());
 
     //check!
-    for line in codes.iter(){
-	println!("{}", line);
-    }
+    while codes.hasMoreCommands(){
+	let mut bin_line: u16 = 0;
+	codes.advance();
 
-    //check2
-    let n = codes.len();
-    println!("{}", n);
-    println!("{}", codes[1]);
+	if codes.commandType()=="C_COMMAND"{
+	    bin_line += 0b111 << 13;
+	    bin_line += Code::comp(codes.comp()) << 6;
+	    bin_line += Code::dest(codes.dest()) << 3;
+	    bin_line += Code::jump(codes.jump());				 
+	}
+
+        else if codes.commandType()=="A_COMMAND"{
+	    //it is not supported SYMBOL
+	    bin_line += codes.symbol().parse::<u16>().unwrap();
+	}
+
+	else{
+	    panic!("undefined COMMAND");
+	}
+	//debug
+        println!("{}", codes.current_line);
+	println!("{:0>16}", format!("{:b}", bin_line));
+	//
+			       
+        let outline:String = format!("{:0>16}", format!("{:b}", bin_line));
+	writer.write(&*outline.as_bytes()).unwrap();
+	writer.write(b"\n").unwrap();
+    }
+	    
 }
