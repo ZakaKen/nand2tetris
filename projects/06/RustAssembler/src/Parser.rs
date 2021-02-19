@@ -350,6 +350,10 @@ impl CodeReader{
 	    "null".to_string()
 	}
     }
+
+    pub fn reset_pos(&mut self) -> (){
+	self.l = 0;
+    }
     
 
 }
