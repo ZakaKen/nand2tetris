@@ -1,0 +1,1 @@
+/Users/ken/nand2tetris/projects/07/RustVMtranslator/target/debug/RustVMtranslator: /Users/ken/nand2tetris/projects/07/RustVMtranslator/src/Parser.rs /Users/ken/nand2tetris/projects/07/RustVMtranslator/src/main.rs
