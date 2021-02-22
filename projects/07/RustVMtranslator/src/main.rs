@@ -1,7 +1,6 @@
 use std::env;
-use std::fs::File;
-use std::io::{BufWriter, Write};
 mod Parser;
+mod CodeWriter;
 
 
 fn main(){
@@ -10,29 +9,30 @@ fn main(){
     let filename = &args[1];
     let mut codes = Parser::CodeReader::new(filename.to_string());
 
-    //create out file
+    //init code_writer
     let trimed: Vec<&str> = filename.split(".").collect();
     let of_name: String = trimed[0].to_string() + ".asm";
-    let mut writer = BufWriter::new(File::create(of_name).unwrap());
+    let mut code_writer = CodeWriter::CodeWriter::new(of_name);
+
+    //VMinit
+    code_writer.VMinit();
+
 
     //check
     codes.reset_pos();
     while codes.hasMoreCommands(){
-	let mut bin_line: u16 = 0;
 	codes.advance();
+	if codes.commandType()=="C_PUSH"||codes.commandType()=="C_POP" {
+	    code_writer.writePushPop(codes.commandType(), codes.arg1(), codes.arg2());
+	}
 
-	if codes.commandType()=="C_COMMAND"{
-	    ()
+	else if codes.commandType()=="C_ARITHMETIC"{
+	    code_writer.writeArithmetic(codes.arg1());
 	}
 
 	else{
-	    ()
+	    panic!("main not defined command")
 	}
-
-	println!("{}", codes.current_line);
-	let outline:String = format!("{:0>16}", format!("{:b}", bin_line));
-        writer.write(&*outline.as_bytes()).unwrap();
-        writer.write(b"\n").unwrap();
 	
     }
 }
