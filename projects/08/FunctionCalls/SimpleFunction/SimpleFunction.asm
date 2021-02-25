@@ -1,11 +1,8 @@
-(SimpleFunction.test)
-@0
+@256
 D=A
 @SP
-A=M
 M=D
-@SP
-M=M+1
+(SimpleFunction.test)
 @0
 D=A
 @SP

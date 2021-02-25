@@ -23,56 +23,20 @@ impl CodeWriter{
 
     }
 
-    pub fn VMinit(&mut self) -> (){
-	//set SP 261
-	let _ = self.writer.write(format!("@261\n").as_bytes());
-	let _ = self.writer.write(format!("D=A\n").as_bytes());
-	let _ = self.writer.write(format!("@SP\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes());
-
-	//
-	self.writePushPop("C_PUSH".to_string(), "constant".to_string(), 4);
-	self.writeCall("Main.fibonacci".to_string(), 1);
-	self.writeLabel("Sys.init$WHILE".to_string());
-	self.writeGoto("Sys.init$WHILE".to_string());
-	    
-	
-	/*
-	//set SP 256
+    pub fn VMinit(&mut self, vm_file_list: Vec<String>) -> (){
+	//SP=256
 	let _ = self.writer.write(format!("@256\n").as_bytes());
 	let _ = self.writer.write(format!("D=A\n").as_bytes());
 	let _ = self.writer.write(format!("@SP\n").as_bytes());
 	let _ = self.writer.write(format!("M=D\n").as_bytes());
-	
-	//set LCL 300
-	let _ = self.writer.write(format!("@300\n").as_bytes());
-	let _ = self.writer.write(format!("D=A\n").as_bytes());
-	let _ = self.writer.write(format!("@LCL\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes());
 
-	//set ARG 400
-	let _ = self.writer.write(format!("@400\n").as_bytes());
-	let _ = self.writer.write(format!("D=A\n").as_bytes());
-	let _ = self.writer.write(format!("@ARG\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes());
-
-	//set THIS 3000
-	let _ = self.writer.write(format!("@3000\n").as_bytes());
-	let _ = self.writer.write(format!("D=A\n").as_bytes());
-	let _ = self.writer.write(format!("@THIS\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes());
-
-	//set THAT 3010
-	let _ = self.writer.write(format!("@3010\n").as_bytes());
-	let _ = self.writer.write(format!("D=A\n").as_bytes());
-	let _ = self.writer.write(format!("@THAT\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes());
-
-	//set static 20
-	for i in 0..21{
-	    let _ = self.writer.write(format!("@{}.{}\n", self.filename, i).as_bytes());
+	//call Sys.init
+	for vm_file in vm_file_list {
+	    if vm_file.contains("Sys.vm"){
+		println!("sys.vm");
+		self.writeCall("Sys.init".to_string(), 0);
+	    }
 	}
-	*/
     }
 
     pub fn writeArithmetic(&mut self, command: String) -> (){
@@ -104,8 +68,6 @@ impl CodeWriter{
 		//Set D = Stack[SP-2] - stackp[SP-1]
 		let _ = self.writer.write(format!("D=M-D\n").as_bytes());
 		self.compD("JEQ".to_string());
-		
-		
 	    }
 
 	    "gt" => {
@@ -261,28 +223,23 @@ impl CodeWriter{
     }
 
     pub fn writeLabel(&mut self, label: String) -> (){
-	//let _ = self.writer.write(format!("({}${})\n", self.funcname, label).as_bytes());
-	let _ = self.writer.write(format!("(${})\n", label).as_bytes());
+	let _ = self.writer.write(format!("({})\n", label).as_bytes());
     }
     
     pub fn writeGoto(&mut self, label: String) -> (){
-	//let _ = self.writer.write(format!("@{}${}\n", self.funcname, label).as_bytes());
-	let _ = self.writer.write(format!("@${}\n", label).as_bytes());
+	let _ = self.writer.write(format!("@{}\n", label).as_bytes());
 	let _ = self.writer.write(format!("0;JMP\n").as_bytes());
     }
 
     pub fn writeIf(&mut self, label: String) -> (){
 	self.pop_tD();
-	//let _ = self.writer.write(format!("@{}${}\n", self.funcname, label).as_bytes());
-	let _ = self.writer.write(format!("@${}\n", label).as_bytes());
+	let _ = self.writer.write(format!("@{}\n", label).as_bytes());
 	let _ = self.writer.write(format!("D;JNE\n").as_bytes());
     }
 
     pub fn writeCall(&mut self, functionName: String, numArgs: u16) -> (){
-	//println!("call {} {}", functionName, numArgs);
 	//PUSH RETURN_ADDR	
-	//let _ = self.writer.write(format!("@{}$RETURN_ADDR\n", functionName).as_bytes());
-	let _ = self.writer.write(format!("@$RETURN_ADDR{}\n", self.ret_count).as_bytes());
+	let _ = self.writer.write(format!("@RETURN_ADDR{}\n", self.ret_count).as_bytes());
 	let _ = self.writer.write(format!("D=A\n").as_bytes()); //D=RETURN_ADDR
 	self.push_fD();
 
@@ -374,7 +331,7 @@ impl CodeWriter{
 
     pub fn writeFunction(&mut self, functionName: String, numLocals: u16) -> (){
 	self.funcname = functionName.clone();
-	let _ = self.writer.write(format!("(${})\n", functionName).as_bytes());
+	let _ = self.writer.write(format!("({})\n", functionName).as_bytes());
 	for _i in 0..numLocals {
 	    let _ = self.writer.write(format!("@0\n").as_bytes());
 	    let _ = self.writer.write(format!("D=A\n").as_bytes());

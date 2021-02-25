@@ -1,3 +1,7 @@
+@256
+D=A
+@SP
+M=D
 @ARG
 D=M
 @1
@@ -99,7 +103,7 @@ D=M
 @R13
 A=M
 M=D
-(func_name$MAIN_LOOP_START)
+(MAIN_LOOP_START)
 @ARG
 D=M
 @0
@@ -115,11 +119,11 @@ M=M+1
 M=M-1
 A=M
 D=M
-@func_name$COMPUTE_ELEMENT
+@COMPUTE_ELEMENT
 D;JNE
-@func_name$END_PROGRAM
+@END_PROGRAM
 0;JMP
-(func_name$COMPUTE_ELEMENT)
+(COMPUTE_ELEMENT)
 @THAT
 D=M
 @0
@@ -245,6 +249,6 @@ D=M
 @R13
 A=M
 M=D
-@func_name$MAIN_LOOP_START
+@MAIN_LOOP_START
 0;JMP
-(func_name$END_PROGRAM)
+(END_PROGRAM)

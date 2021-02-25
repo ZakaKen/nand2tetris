@@ -15,15 +15,15 @@ fn main(){
     n = result.1;
     list = result.2;
     println!("{} {} {}", name, n, list[0]);
-    let of_name: String = name.clone() + ".asm";
+    let mut of_name: String = name.clone() + ".asm";
 
     //init writer instance
     let mut code_writer = CodeWriter::CodeWriter::new(of_name);
 
-    //sys.init dummy
-    code_writer.VMinit();
+    //sys.init
+    code_writer.VMinit(list.clone());
 
-    //init Parser list
+    //init Parser list = [Aaa.vm, Bbb.vm ...]
     let mut codes_list = Vec::new();
     for i in 0..n{
 	codes_list.push(Parser::CodeReader::new(list[i].clone()));
@@ -39,39 +39,41 @@ fn main(){
 fn vm2asm(mut codes: Parser::CodeReader, code_writer: &mut CodeWriter::CodeWriter) -> (){
     while (codes).hasMoreCommands(){
 	codes.advance();
-	if codes.commandType()=="C_PUSH"||codes.commandType()=="C_POP" {
-	    code_writer.writePushPop(codes.commandType(), codes.arg1(), codes.arg2());
-	}
+	match &codes.commandType()[..]{
+	    "C_PUSH"|"C_POP" => {
+		code_writer.writePushPop(codes.commandType(), codes.arg1(), codes.arg2());
+	    }
 
-	else if codes.commandType()=="C_ARITHMETIC"{
-	    code_writer.writeArithmetic(codes.arg1());
-	}
+	    "C_ARITHMETIC" => {
+		code_writer.writeArithmetic(codes.arg1());
+	    }
 
-	else if codes.commandType()=="C_LABEL"{
-	    code_writer.writeLabel(codes.arg1());
-	}
+	    "C_LABEL" => {
+		code_writer.writeLabel(codes.arg1());
+	    }
 
-	else if codes.commandType()=="C_GOTO"{
-	    code_writer.writeGoto(codes.arg1());
-	}
+	    "C_GOTO" => {
+		code_writer.writeGoto(codes.arg1());
+	    }
 
-	else if codes.commandType()=="C_IF"{
-	    code_writer.writeIf(codes.arg1());
-	}
+	    "C_IF" =>{
+		code_writer.writeIf(codes.arg1());
+	    }
 
-	else if codes.commandType()=="C_FUNCTION"{
-	    code_writer.writeFunction(codes.arg1(), codes.arg2());
-	}
+	    "C_FUNCTION" => {
+		code_writer.writeFunction(codes.arg1(), codes.arg2());
+	    }
+	    
+	    "C_RETURN" => {
+		code_writer.writeReturn();
+	    }
 
-	else if codes.commandType()=="C_RETURN"{
-	    code_writer.writeReturn();
-	}
-
-	else if codes.commandType()=="C_CALL"{
-	    code_writer.writeCall(codes.arg1(), codes.arg2());
-	}
-	else{
-	    panic!("main not defined command")
+	    "C_CALL" => {
+		code_writer.writeCall(codes.arg1(), codes.arg2());
+	    }
+	    _ => {
+		panic!("main not defined command")
+	    }
 	}
     }
 }
@@ -111,7 +113,17 @@ fn GetArgs() -> (String, usize, Vec<String>){
 	    panic!("no .vm file");
 	}
 	
-	return(input, nargs, vmlist);
+	let mut asm_name: String;
+	if input.contains("/") {
+	    let trimed: Vec<&str> = input.split("/").collect();
+	    asm_name = trimed[0].to_string();
+	}
+	else {
+	    asm_name = input;
+	}
+	asm_name = asm_name.clone() + "/" + &asm_name;
+
+	return(asm_name, nargs, vmlist);
     }
 }
 
