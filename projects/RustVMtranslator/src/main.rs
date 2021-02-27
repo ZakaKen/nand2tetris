@@ -7,36 +7,35 @@ mod CodeWriter;
 
 fn main(){
     //Get args
-    let name: String;
-    let n: usize;
-    let list: Vec<String>;
     let result = GetArgs();
-    name = result.0;
-    n = result.1;
-    list = result.2;
+    let name: String = result.0; //dir or file path
+    let n: usize = result.1; //num of .vm files
+    let list: Vec<String> = result.2; //list of path to .vm files (Ex [dir/Xxx.vm, dir/Yyy.vm])
     println!("{} {} {}", name, n, list[0]);
-    let mut of_name: String = name.clone() + ".asm";
+
+    
 
     //init writer instance
-    let mut code_writer = CodeWriter::CodeWriter::new(of_name);
+    let mut code_writer = CodeWriter::CodeWriter::new(name + ".asm");
 
     //sys.init
-    code_writer.VMinit(list.clone());
+    code_writer.VMinit(&list);
 
-    //init Parser list = [Aaa.vm, Bbb.vm ...]
+    //init Parser list = [parser[Aaa.vm], parser[Bbb.vm] ...]
     let mut codes_list = Vec::new();
     for i in 0..n{
-	codes_list.push(Parser::CodeReader::new(list[i].clone()));
+	codes_list.push(Parser::CodeReader::new(&list[i]));
     }
 
-    //write asm file. This clone() is ugly
+    //write asm file.
     for i in 0..n{
-	vm2asm(codes_list[i].clone(), &mut code_writer);
+	code_writer.setFileName(&list[i]);
+	vm2asm(&mut codes_list[i], &mut code_writer);
     }
     
 }
 
-fn vm2asm(mut codes: Parser::CodeReader, code_writer: &mut CodeWriter::CodeWriter) -> (){
+fn vm2asm(codes: &mut Parser::CodeReader, code_writer: &mut CodeWriter::CodeWriter) -> (){
     while (codes).hasMoreCommands(){
 	codes.advance();
 	match &codes.commandType()[..]{
@@ -49,18 +48,21 @@ fn vm2asm(mut codes: Parser::CodeReader, code_writer: &mut CodeWriter::CodeWrite
 	    }
 
 	    "C_LABEL" => {
-		code_writer.writeLabel(codes.arg1());
+		code_writer.writeLabel(format!("{}${}", codes.current_func, codes.arg1()));
 	    }
 
 	    "C_GOTO" => {
-		code_writer.writeGoto(codes.arg1());
+		code_writer.writeGoto(format!("{}${}", codes.current_func, codes.arg1()));
 	    }
 
 	    "C_IF" =>{
-		code_writer.writeIf(codes.arg1());
+		code_writer.writeIf(format!("{}${}", codes.current_func, codes.arg1()));
 	    }
 
 	    "C_FUNCTION" => {
+		//renew current func
+		codes.current_func = codes.arg1().clone();
+		//write
 		code_writer.writeFunction(codes.arg1(), codes.arg2());
 	    }
 	    
@@ -83,51 +85,58 @@ fn vm2asm(mut codes: Parser::CodeReader, code_writer: &mut CodeWriter::CodeWrite
 //Xxx.vm ->   ___  1, Xxx.vm
 //(Dir)Ddd -> Ddd, n, Xxx.vm, Zzz.vm, ...
 fn GetArgs() -> (String, usize, Vec<String>){
-    let mut name: String;
     let mut nargs: usize = 0;
-    
+
+    //get arg. arg is Xxx.vm or Xxx(Dir).
     let args: Vec<String> = env::args().collect();
     if  args.len() > 2 {
 	panic!("more than 1 args");
     }
-    let input = args[1].trim().to_string();
+    let arg = args[1].trim().to_string();
+    
 
-    //if input is Xxx.vm
-    if isVMfile(input.clone()) {
-	let trimed: Vec<&str> = input.split(".").collect();
-	return(trimed[0].to_string(), 1, vec![input]);
+    //if arg is Xxx.vm
+    if isVMfile(&arg) {
+	let trimed: Vec<&str> = arg.split(".").collect();
+	//println!("{}", &trimed[0]);
+	return(trimed[0].to_string(), 1, vec![arg]);
     }
 
-    //else if input is Ddd(DIR)
+    //else if arg is Ddd(DIR)
     else{
 	let mut vmlist= Vec::new();
-	let paths = fs::read_dir(format!("./{}", input)).unwrap();
+	let paths = fs::read_dir(format!("./{}", arg)).unwrap();
+	//push .vm files to vmlist. nargs = length of vmlist.
 	for path in paths {
 	    let path_string = path.unwrap().path().into_os_string().into_string().unwrap();
-	    if isVMfile(path_string.clone()){
+	    if isVMfile(&path_string){
 		vmlist.push(path_string);
 		nargs += 1;
 	    }
 	}
+
+	//if there are no .vm file in Dir, Error
 	if nargs==0{
 	    panic!("no .vm file");
 	}
-	
-	let mut asm_name: String;
-	if input.contains("/") {
-	    let trimed: Vec<&str> = input.split("/").collect();
-	    asm_name = trimed[0].to_string();
+
+	//generate where Dir, Dir/ -> Dir/Dir
+	let dir_name: String;
+	if arg.contains("/") {
+	    let trimed: Vec<&str> = arg.split("/").collect();
+	    dir_name = trimed[0].to_string();
 	}
 	else {
-	    asm_name = input;
+	    dir_name = arg;
 	}
-	asm_name = asm_name.clone() + "/" + &asm_name;
 
-	return(asm_name, nargs, vmlist);
+	//dir_name = Dir
+	let out_file_path = dir_name.clone() + "/" + &dir_name.clone();
+	return(out_file_path, nargs, vmlist);
     }
 }
 
-fn isVMfile(name: String) -> bool{
+fn isVMfile(name: &String) -> bool{
     let trimed: Vec<&str> = name.split(".").collect();
     let n = trimed.len();
 

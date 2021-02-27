@@ -4,26 +4,30 @@ use std::io::{BufWriter, Write};
 
 pub struct CodeWriter{
     pub filename:String,
-    pub funcname:String,
     pub writer: BufWriter<File>,
     pub comp_count: usize,
     pub ret_count: usize,
 }
 
 impl CodeWriter{
-    pub fn new(name: String) -> CodeWriter{
-	println!("codewriter -> {}", name);
+    pub fn new(out_file_path: String) -> CodeWriter{
+	//out_file_path = /dir/out_file_name.asm
+
+	let mut trimed: Vec<&str> = out_file_path.split("/").collect();
+	println!("codewriter -> {}", trimed.last().unwrap());
+	
 	CodeWriter{
-	    filename: name.clone(),
-	    funcname: "".to_string(),
-	    writer: BufWriter::new(File::create(name).unwrap()),
+	    filename: "".to_string(),
+	    writer: BufWriter::new(File::create(out_file_path).unwrap()),
 	    comp_count: 0,
 	    ret_count: 0,
 	}
-
     }
 
-    pub fn VMinit(&mut self, vm_file_list: Vec<String>) -> (){
+    pub fn VMinit(&mut self, vm_file_list: &Vec<String>) -> (){
+	//Set SP at 256
+	//if there are sys.vm>sys.init, then call sys.init
+	
 	//SP=256
 	let _ = self.writer.write(format!("@256\n").as_bytes());
 	let _ = self.writer.write(format!("D=A\n").as_bytes());
@@ -33,10 +37,21 @@ impl CodeWriter{
 	//call Sys.init
 	for vm_file in vm_file_list {
 	    if vm_file.contains("Sys.vm"){
-		println!("sys.vm");
 		self.writeCall("Sys.init".to_string(), 0);
 	    }
 	}
+    }
+
+    pub fn setFileName(&mut self, input_file_path: &String) -> (){
+	//input_file_path(Ex /dir/Xxx.vm) -> codewriter.filename = Xxx
+	
+	let trimed: Vec<&str> = input_file_path.split(".vm").collect();
+	let mut filename: String = trimed[0].to_string();
+	let trimed_buf: Vec<&str> = filename.split("/").collect();
+	filename = trimed_buf.last().unwrap().to_string();
+	
+	self.filename = filename;
+	println!("load {}.vm", self.filename);
     }
 
     pub fn writeArithmetic(&mut self, command: String) -> (){
@@ -279,7 +294,7 @@ impl CodeWriter{
 	self.writeGoto(functionName);
 
 	//Label for return address
-	self.writeLabel(format!("RETURN_ADDR{}", self.ret_count).to_string());
+	self.writeLabel(format!("RETURN_ADDR{}", self.ret_count));
 	self.ret_count += 1;
     }
 
@@ -326,12 +341,11 @@ impl CodeWriter{
 	let _ = self.writer.write(format!("@R13\n").as_bytes());
 	let _ = self.writer.write(format!("A=M\n").as_bytes());
 	let _ = self.writer.write(format!("0;JMP\n").as_bytes());
-	
+
     }
 
     pub fn writeFunction(&mut self, functionName: String, numLocals: u16) -> (){
-	self.funcname = functionName.clone();
-	let _ = self.writer.write(format!("({})\n", functionName).as_bytes());
+	self.writeLabel(functionName);
 	for _i in 0..numLocals {
 	    let _ = self.writer.write(format!("@0\n").as_bytes());
 	    let _ = self.writer.write(format!("D=A\n").as_bytes());

@@ -98,11 +98,11 @@ M=M+1
 M=M-1
 A=M
 D=M
-@IF_TRUE
+@Main.fibonacci$IF_TRUE
 D;JNE
-@IF_FALSE
+@Main.fibonacci$IF_FALSE
 0;JMP
-(IF_TRUE)
+(Main.fibonacci$IF_TRUE)
 @ARG
 D=M
 @0
@@ -169,7 +169,7 @@ M=D
 @R13
 A=M
 0;JMP
-(IF_FALSE)
+(Main.fibonacci$IF_FALSE)
 @ARG
 D=M
 @0
@@ -458,6 +458,6 @@ M=D
 @Main.fibonacci
 0;JMP
 (RETURN_ADDR3)
-(WHILE)
-@WHILE
+(Sys.init$WHILE)
+@Sys.init$WHILE
 0;JMP
