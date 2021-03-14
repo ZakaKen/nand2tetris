@@ -6,54 +6,52 @@ pub struct CodeWriter{
     pub filename:String,
     pub writer: BufWriter<File>,
     pub comp_count: usize,
+    pub ret_count: usize,
 }
 
 impl CodeWriter{
-    pub fn new(name: String) -> CodeWriter{
-	println!("codewriter -> {}", name);
-	CodeWriter{
-	    filename: name.clone(),
-	    writer: BufWriter::new(File::create(name).unwrap()),
-	    comp_count: 0,
-	}
+    pub fn new(out_file_path: String) -> CodeWriter{
+	//out_file_path = /dir/out_file_name.asm
 
+	let mut trimed: Vec<&str> = out_file_path.split("/").collect();
+	println!("codewriter -> {}", trimed.last().unwrap());
+	
+	CodeWriter{
+	    filename: "".to_string(),
+	    writer: BufWriter::new(File::create(out_file_path).unwrap()),
+	    comp_count: 0,
+	    ret_count: 0,
+	}
     }
 
-    pub fn VMinit(&mut self) -> (){
-	//set SP 256
+    pub fn VMinit(&mut self, vm_file_list: &Vec<String>) -> (){
+	//Set SP at 256
+	//if there are sys.vm>sys.init, then call sys.init
+	
+	//SP=256
 	let _ = self.writer.write(format!("@256\n").as_bytes());
 	let _ = self.writer.write(format!("D=A\n").as_bytes());
 	let _ = self.writer.write(format!("@SP\n").as_bytes());
 	let _ = self.writer.write(format!("M=D\n").as_bytes());
-	
-	//set LCL 300
-	let _ = self.writer.write(format!("@300\n").as_bytes());
-	let _ = self.writer.write(format!("D=A\n").as_bytes());
-	let _ = self.writer.write(format!("@LCL\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes());
 
-	//set ARG 400
-	let _ = self.writer.write(format!("@400\n").as_bytes());
-	let _ = self.writer.write(format!("D=A\n").as_bytes());
-	let _ = self.writer.write(format!("@ARG\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes());
-
-	//set THIS 3000
-	let _ = self.writer.write(format!("@3000\n").as_bytes());
-	let _ = self.writer.write(format!("D=A\n").as_bytes());
-	let _ = self.writer.write(format!("@THIS\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes());
-
-	//set THAT 3010
-	let _ = self.writer.write(format!("@3010\n").as_bytes());
-	let _ = self.writer.write(format!("D=A\n").as_bytes());
-	let _ = self.writer.write(format!("@THAT\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes());
-
-	//set static 20
-	for i in 0..21{
-	    let _ = self.writer.write(format!("@{}.{}\n", self.filename, i).as_bytes());
+	//call Sys.init
+	for vm_file in vm_file_list {
+	    if vm_file.contains("Sys.vm"){
+		self.writeCall("Sys.init".to_string(), 0);
+	    }
 	}
+    }
+
+    pub fn setFileName(&mut self, input_file_path: &String) -> (){
+	//input_file_path(Ex /dir/Xxx.vm) -> codewriter.filename = Xxx
+	
+	let trimed: Vec<&str> = input_file_path.split(".vm").collect();
+	let mut filename: String = trimed[0].to_string();
+	let trimed_buf: Vec<&str> = filename.split("/").collect();
+	filename = trimed_buf.last().unwrap().to_string();
+	
+	self.filename = filename;
+	println!("load {}.vm", self.filename);
     }
 
     pub fn writeArithmetic(&mut self, command: String) -> (){
@@ -85,8 +83,6 @@ impl CodeWriter{
 		//Set D = Stack[SP-2] - stackp[SP-1]
 		let _ = self.writer.write(format!("D=M-D\n").as_bytes());
 		self.compD("JEQ".to_string());
-		
-		
 	    }
 
 	    "gt" => {
@@ -242,22 +238,64 @@ impl CodeWriter{
     }
 
     pub fn writeLabel(&mut self, label: String) -> (){
-	let _ = self.writer.write(format!("(func_name${})\n", label).as_bytes());
+	let _ = self.writer.write(format!("({})\n", label).as_bytes());
     }
     
     pub fn writeGoto(&mut self, label: String) -> (){
-	let _ = self.writer.write(format!("@func_name${}\n", label).as_bytes());
+	let _ = self.writer.write(format!("@{}\n", label).as_bytes());
 	let _ = self.writer.write(format!("0;JMP\n").as_bytes());
     }
 
     pub fn writeIf(&mut self, label: String) -> (){
 	self.pop_tD();
-	let _ = self.writer.write(format!("@func_name${}\n", label).as_bytes());
+	let _ = self.writer.write(format!("@{}\n", label).as_bytes());
 	let _ = self.writer.write(format!("D;JNE\n").as_bytes());
     }
 
     pub fn writeCall(&mut self, functionName: String, numArgs: u16) -> (){
-	println!("call {} {}", functionName, numArgs);
+	//PUSH RETURN_ADDR	
+	let _ = self.writer.write(format!("@RETURN_ADDR{}\n", self.ret_count).as_bytes());
+	let _ = self.writer.write(format!("D=A\n").as_bytes()); //D=RETURN_ADDR
+	self.push_fD();
+
+	//push LCL
+	self.SEG_tD("LCL".to_string());
+	self.push_fD();
+
+	//push ARG
+	self.SEG_tD("ARG".to_string());
+	self.push_fD();
+
+	//push THIS
+	self.SEG_tD("THIS".to_string());
+	self.push_fD();
+
+	//push THAT
+	self.SEG_tD("THAT".to_string());
+	self.push_fD();
+
+	//ARG = SP-n-5
+	let _ = self.writer.write(format!("@SP\n").as_bytes());
+	let _ = self.writer.write(format!("D=M\n").as_bytes()); //D = SP
+	let _ = self.writer.write(format!("@5\n").as_bytes());
+	let _ = self.writer.write(format!("D=D-A\n").as_bytes()); //D = SP - 5
+	let _ = self.writer.write(format!("@{}\n", numArgs).as_bytes());
+	let _ = self.writer.write(format!("D=D-A\n").as_bytes()); //D = SP - 5 - numArgs
+	let _ = self.writer.write(format!("@ARG\n").as_bytes());
+	let _ = self.writer.write(format!("M=D\n").as_bytes()); //ARG = SP-5-numArgs
+
+	//LCL = SP
+	let _ = self.writer.write(format!("@SP\n").as_bytes());
+	let _ = self.writer.write(format!("D=M\n").as_bytes()); //D = SP
+	let _ = self.writer.write(format!("@LCL\n").as_bytes());
+	let _ = self.writer.write(format!("M=D\n").as_bytes()); //LCL = SP
+	
+	//go to function
+	self.writeGoto(functionName);
+
+	//Label for return address
+	self.writeLabel(format!("RETURN_ADDR{}", self.ret_count));
+	self.ret_count += 1;
     }
 
     pub fn writeReturn(&mut self) -> (){
@@ -303,12 +341,12 @@ impl CodeWriter{
 	let _ = self.writer.write(format!("@R13\n").as_bytes());
 	let _ = self.writer.write(format!("A=M\n").as_bytes());
 	let _ = self.writer.write(format!("0;JMP\n").as_bytes());
-	
+
     }
 
     pub fn writeFunction(&mut self, functionName: String, numLocals: u16) -> (){
-	let _ = self.writer.write(format!("({})\n", functionName).as_bytes());
-	for _i in 0..numLocals+1 {
+	self.writeLabel(functionName);
+	for _i in 0..numLocals {
 	    let _ = self.writer.write(format!("@0\n").as_bytes());
 	    let _ = self.writer.write(format!("D=A\n").as_bytes());
 	    self.push_fD();
@@ -395,7 +433,7 @@ impl CodeWriter{
 	//set M[SEGbase + index] = D
 	let _ = self.writer.write(format!("@R13\n").as_bytes());
 	let _ = self.writer.write(format!("A=M\n").as_bytes());
-	let _ = self.writer.write(format!("M=D\n").as_bytes()); //D=M[SEGbase + index]
+	let _ = self.writer.write(format!("M=D\n").as_bytes()); //M[SEGbase + index] = D
     }
 
     pub fn state_i_tD(&mut self, index: u16) -> (){
@@ -405,6 +443,11 @@ impl CodeWriter{
 	let _ = self.writer.write(format!("D=D-A\n").as_bytes()); //D = *LCL - 5 = &return address
 	let _ = self.writer.write(format!("A=D\n").as_bytes());
 	let _ = self.writer.write(format!("D=M\n").as_bytes()); //D = return address
+    }
+
+    pub fn SEG_tD(&mut self, seg: String) -> (){
+	let _ = self.writer.write(format!("@{}\n", seg).as_bytes());
+	let _ = self.writer.write(format!("D=M\n").as_bytes()); //D=SEGbase
     }
 
     

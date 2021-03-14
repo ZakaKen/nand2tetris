@@ -3,13 +3,12 @@ use std::io::{BufRead, BufReader};
 
 const ARITHMETIC_LIST: &str = "add,sub,neg,eq,gt,lt,and,or,not";
 
-
 pub struct CodeReader {
-    pub filename: String,
     pub lines: Vec<String>,
     pub current_command: String,
     pub current_arg1: String,
     pub current_arg2: String,
+    pub current_func: String,
     pub n: usize,
     pub l: usize,
 }
@@ -17,14 +16,14 @@ pub struct CodeReader {
 impl CodeReader{
 
     
-    pub fn new(name: String) -> CodeReader{
-	//prepare
+    pub fn new(name: &String) -> CodeReader{
+	//open file and prepare
 	let f_name = &name;
 	let f = File::open(f_name).expect("file not found");
 	let reader = BufReader::new(f);
 	let mut codes : Vec<String> =Vec::new();
 
-	//read + processing + push datas to vector
+	//read file > trime space and // >push line to codes.
 	for line in reader.lines(){
 	    let mut line = line.unwrap().trim().to_string();
 	
@@ -43,11 +42,11 @@ impl CodeReader{
 
 	//instance init
 	CodeReader{
-	    filename: f_name.to_string(),
 	    lines: codes.clone(),
 	    current_command: "".to_string(),
 	    current_arg1: "".to_string(),
 	    current_arg2: "".to_string(),
+	    current_func: "null".to_string(),
 	    n: codes.len(),
 	    l: 0,
 	}
@@ -58,7 +57,6 @@ impl CodeReader{
     }
 
     pub fn advance(&mut self) -> (){
-	//self.current_line = self.lines[self.l].clone();
 	let trimed: Vec<&str> = self.lines[self.l].split(" ").collect();
 	let args_len: usize = trimed.len();
 	match args_len {
