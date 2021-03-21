@@ -1,0 +1,32 @@
+use std::fs::File;
+use std::io::{BufWriter, Write};
+
+pub struct VMWriter{
+    pub writer: BufWriter<File>
+}
+
+impl VMWriter{
+    pub fn new(out_file_path: String) -> VMWriter{
+	let mut trimed: Vec<&str> = out_file_path.split("/").collect();
+	println!("VMWriter -> {}", trimed.last().unwrap());
+
+	VMWriter{
+	    writer: BufWriter::new(File::create(out_file_path).unwrap()),
+	}
+    }
+
+    pub fn writeCode(&mut self, code: String) -> (){
+	let _ = self.writer.write(format!("{}\n", code).as_bytes());
+    }
+
+    pub fn writeFunction(&mut self, name: String, nLocals: u16) -> (){
+	self.writeCode(format!("function {} {}", name, nLocals));
+    }
+
+    pub fn writePush(&mut self, Segment: String, Index: u16)-> (){
+	self.writeCode(format!("push {} {}", Segment, Index));
+    }
+
+	
+    
+}

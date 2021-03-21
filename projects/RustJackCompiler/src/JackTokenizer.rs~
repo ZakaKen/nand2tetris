@@ -166,7 +166,7 @@ pub fn do_comment_out(lines: std::io::Lines<BufReader<File>>) -> Vec<String>{
 	
 	//ignore vacant line and push
 	if line.len() > 0 {
-	    codes.push(line);
+	    codes.push(line.trim().to_string());
 	}
     }
 
@@ -175,13 +175,9 @@ pub fn do_comment_out(lines: std::io::Lines<BufReader<File>>) -> Vec<String>{
 
 pub fn tokenize(lines: Vec::<String>) -> Vec<String>{
     let mut tokens = Vec::<String>::new();
+
     for line in lines{
-	//step1 split by white space
-	let line_splited_ws = line.split_whitespace();
-	for word in line_splited_ws{
-	    //step2 split by symbol
-	    tokens.extend_from_slice(&split_symbol(word));
-	}
+	tokens.extend_from_slice(&line_to_tokens(&line));
     }
 
     tokens
@@ -216,6 +212,79 @@ pub fn split_symbol(word: &str) -> Vec<String>{
 
     //return
     words_splited_symb
+}
+
+pub fn line_to_tokens(line: &str) -> Vec<String>{
+    let mut buf_string: String = "".to_string();
+    let mut splited_line = Vec::<String>::new();
+    let mut is_string: bool = false;
+
+    //read by 1 character
+    for c in line.chars(){
+	//if whitespace
+	if c.to_string() == " ".to_string() && !is_string{
+	    //push token
+	    if buf_string.len() > 0{
+		splited_line.push(buf_string.clone());
+	    }
+	    //reset buf
+	    buf_string = "".to_string();
+	}
+
+	
+	//if SYMBOL_LIST.contains(c){
+	else if  SYMBOL_LIST.iter().find(|&&x| x == &c.to_string()).is_some() && !is_string{
+	    //push token
+	    if buf_string.len() > 0{
+		splited_line.push(buf_string.clone().trim().to_string());
+	    }
+	    //push symbol to tokens
+	    splited_line.push(c.to_string());
+	    //reset buf
+	    buf_string = "".to_string();
+	}
+
+	//if string start
+	else if c.to_string() == '"'.to_string() && !is_string{
+	    //push token
+	    if buf_string.len() > 0{
+		splited_line.push(buf_string.clone().trim().to_string());
+	    }
+	    //reset buf
+	    buf_string = "".to_string();
+	    //push symbol to buf_string
+	    buf_string.push(c);
+
+	    is_string = true;
+	}
+
+	//if string end
+	else if c.to_string() == '"'.to_string() && is_string{
+	    //push symbol to buf_string
+	    buf_string.push(c);
+	    //push token
+	    if buf_string.len() > 0{
+		splited_line.push(buf_string.clone().trim().to_string());
+	    }
+	    //reset buf
+	    buf_string = "".to_string();
+
+	    is_string = false;
+	}
+	
+	//push c to buf strings
+	else {
+	    buf_string.push(c);
+	}
+    }
+    
+    //push token
+    if buf_string.len() > 0{
+	splited_line.push(buf_string.clone());
+    }
+
+    //return
+    splited_line
 }
 
 pub fn is_int_const(token: &String) -> bool {

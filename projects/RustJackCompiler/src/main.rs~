@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 mod JackTokenizer;
 mod CompilationEngine;
+mod SymbolTable;
 
 
 
@@ -24,61 +25,12 @@ fn main(){
 	comp_engine_list.push(CompilationEngine::CompilationEngine::new(tokens_list[i].clone(), out_file_path));
     }
 
-    
     //write xml file.
     for i in 0..n{
 	comp_engine_list[i].startCompile();
     }
-    
-    
 }
 
-/*
-fn vm2asm(codes: &mut Parser::CodeReader, code_writer: &mut CompilationEngine::CompilationEngine) -> (){
-    while (codes).hasMoreCommands(){
-	codes.advance();
-	match &codes.commandType()[..]{
-	    "C_PUSH"|"C_POP" => {
-		code_writer.writePushPop(codes.commandType(), codes.arg1(), codes.arg2());
-	    }
-
-	    "C_ARITHMETIC" => {
-		code_writer.writeArithmetic(codes.arg1());
-	    }
-
-	    "C_LABEL" => {
-		code_writer.writeLabel(format!("{}${}", codes.current_func, codes.arg1()));
-	    }
-
-	    "C_GOTO" => {
-		code_writer.writeGoto(format!("{}${}", codes.current_func, codes.arg1()));
-	    }
-
-	    "C_IF" =>{
-		code_writer.writeIf(format!("{}${}", codes.current_func, codes.arg1()));
-	    }
-
-	    "C_FUNCTION" => {
-		//renew current func
-		codes.current_func = codes.arg1().clone();
-		//write
-		code_writer.writeFunction(codes.arg1(), codes.arg2());
-	    }
-	    
-	    "C_RETURN" => {
-		code_writer.writeReturn();
-	    }
-
-	    "C_CALL" => {
-		code_writer.writeCall(codes.arg1(), codes.arg2());
-	    }
-	    _ => {
-		panic!("main not defined command")
-	    }
-	}
-    }
-}
-*/
 
 //GetArg
 //Xxx.jack ->   ___  1, Xxx.jack

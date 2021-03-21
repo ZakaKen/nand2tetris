@@ -51,6 +51,12 @@ impl JackTokenizer {
 	}
     }
 
+    pub fn back(&mut self) -> (){
+	self.l -= 2;
+	self.current_token = self.tokens[self.l].clone();
+	self.l += 1;
+    }
+
     pub fn tokenType(&self) -> String{
 	if KEYWORD_LIST.iter().find(|&&x| x == &self.current_token).is_some(){
 	    "KEYWORD".to_string()

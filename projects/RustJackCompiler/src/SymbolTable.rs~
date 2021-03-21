@@ -1,0 +1,113 @@
+use std::collections::HashMap;
+
+pub struct SymbolTable{
+    pub class_table: HashMap<String, (String, String, u16)>,
+    pub sub_table: HashMap<String, (String, String, u16)>,
+    pub current_symbol: (String, String, u16),
+
+    pub className: String,
+    pub subroutineName: String,
+    pub kind_buf: String,
+    pub type_buf: String,
+    pub symbol_buf: String,
+    pub nStatic: u16,
+    pub nField: u16,
+    pub nArg: u16,
+    pub nVar: u16,
+}
+
+
+impl SymbolTable{
+    pub fn new() -> SymbolTable{
+	let mut table_init =  HashMap::new();
+		
+	SymbolTable{
+	    class_table: table_init.clone(),
+	    sub_table: table_init.clone(),
+	    current_symbol: ("".to_string(), "".to_string(), 0),
+	    
+	    className: "".to_string(),
+	    subroutineName: "".to_string(),
+	    kind_buf: "".to_string(),
+	    type_buf: "".to_string(),
+	    symbol_buf: "".to_string(),
+	    nStatic: 0,
+	    nField: 0,
+	    nArg: 0,
+	    nVar: 0,
+	}
+    }
+
+    pub fn symbol_print(&mut self, name: String) -> (){
+	/*symbol table test*/
+	if self.isDefined(name.clone()){
+	    println!("{}, {}, {}", self.kindOf(), self.typeOf(), self.indexOf());
+	}
+	else{
+	    panic!("undefined identifier")
+	}
+    }
+
+    pub fn startSubroutine(&mut self) -> (){
+	let table_init =  HashMap::new();
+	self.sub_table = table_init.clone();
+    }
+
+    pub fn define(&mut self) -> (){
+	println!("define");
+	match &self.kind_buf[..]{
+	    "static" => {
+		self.class_table.insert(self.symbol_buf.clone(),
+					(self.kind_buf.clone(), self.type_buf.clone(), self.nStatic));
+		self.nStatic += 1;
+	    }
+	    
+	    "field" => {
+		self.class_table.insert(self.symbol_buf.clone(),
+					(self.kind_buf.clone(), self.type_buf.clone(), self.nField));
+		self.nField += 1;
+	    }
+	    
+	    "arg" => {
+		self.sub_table.insert(self.symbol_buf.clone(),
+				      (self.kind_buf.clone(), self.type_buf.clone(), self.nArg));
+		self.nArg += 1;
+	    }
+	    "var" => {
+		self.sub_table.insert(self.symbol_buf.clone(),
+				      (self.kind_buf.clone(), self.type_buf.clone(), self.nVar));
+		self.nVar += 1;
+	    }
+	    
+	    _ => panic!("undefined kind of symbol")
+	}
+    }
+
+    pub fn isDefined(&mut self, name: String) -> bool {
+	if self.sub_table.get(&name.to_string()).is_some(){
+	    self.current_symbol = self.sub_table.get(&name.to_string()).unwrap().clone();
+	    true
+	}
+	else{
+	    if self.class_table.get(&name.to_string()).is_some(){
+		self.current_symbol = self.sub_table.get(&name.to_string()).unwrap().clone();
+		true
+	    }
+	    else{
+		false
+	    }
+	}
+    }
+
+    pub fn kindOf(&self) -> String{
+	return self.current_symbol.0.clone()
+    }
+
+    pub fn typeOf(&self) -> String{
+	return self.current_symbol.1.clone()
+    }
+
+    pub fn indexOf(&self) -> u16{
+	return self.current_symbol.2.clone()
+    }
+}

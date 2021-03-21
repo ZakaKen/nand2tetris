@@ -1,28 +1,32 @@
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use JackTokenizer;
+use SymbolTable;
+use VMWriter;
 
 pub struct CompilationEngine{
     pub tokens: JackTokenizer::JackTokenizer,
     pub filename:String,
-    pub writer: BufWriter<File>,
+    pub vmwriter: VMWriter::VMWriter,
     pub comp_count: usize,
     pub ret_count: usize,
+    pub symbolTbl: SymbolTable::SymbolTable,
+
+    pub void_flag: bool,
 }
 
 impl CompilationEngine{
     pub fn new(tokens: JackTokenizer::JackTokenizer, out_file_path: String) -> CompilationEngine{
 	//out_file_path = /dir/out_file_name.xml
 
-	let mut trimed: Vec<&str> = out_file_path.split("/").collect();
-	println!("CompilationEngine -> {}", trimed.last().unwrap());
-	
 	CompilationEngine{
 	    tokens: tokens,
 	    filename: "".to_string(),
-	    writer: BufWriter::new(File::create(out_file_path).unwrap()),
+	    vmwriter: VMWriter::VMWriter::new(out_file_path),
 	    comp_count: 0,
 	    ret_count: 0,
+	    symbolTbl: SymbolTable::SymbolTable::new(),
+	    void_flag: false,
 	}
     }
 
@@ -43,7 +47,11 @@ impl CompilationEngine{
 	self.tokens.advance();
 
 	//className
+	self.symbolTbl.className = self.tokens.identifier();
+	self.symbolTbl.kind_buf = "class".to_string();
+	self.symbolTbl.symbol_buf = self.tokens.identifier();
 	self.compileIdentifier("compileClass className ?");
+	
 	
 	//symbol '{'
 	self.compileSymbol("{", "at compileClass");
@@ -69,14 +77,19 @@ impl CompilationEngine{
     pub fn compileclassVarDec(&mut self){	
 	self.writeLine("<classVarDec>");
 	//static | field
+	self.symbolTbl.kind_buf = self.tokens.keyWord().to_lowercase();
 	self.print_type_token();
 	self.tokens.advance();
 
 	//type
+	self.symbolTbl.type_buf = self.tokens.current_token.clone();
 	self.compileType("compileVarDec type?");
 
 	//varName
+	self.symbolTbl.symbol_buf = self.tokens.identifier();
+	self.symbolTbl.define();
 	self.compileIdentifier("compileVarDec varName ?");
+	
 
 	// (, varname)*
 	while self.is_symbol(","){
@@ -85,6 +98,8 @@ impl CompilationEngine{
 	    self.tokens.advance();
 
 	    //varName
+	    self.symbolTbl.symbol_buf = self.tokens.identifier();
+	    self.symbolTbl.define();
 	    self.compileIdentifier("compileVarDec varName ?");
 	}
 
@@ -98,13 +113,17 @@ impl CompilationEngine{
     pub fn compileVarDec(&mut self){	
 	self.writeLine("<varDec>");
 	//var
+	self.symbolTbl.kind_buf = self.tokens.keyWord().to_lowercase();
 	self.print_type_token();
 	self.tokens.advance();
 
 	//type
+	self.symbolTbl.type_buf = self.tokens.current_token.clone();
 	self.compileType("compileVarDec type?");
 
 	//varName
+	self.symbolTbl.symbol_buf = self.tokens.identifier();
+	self.symbolTbl.define();
 	self.compileIdentifier("compileVarDec varName ?");
 
 	// (, varname)*
@@ -114,6 +133,8 @@ impl CompilationEngine{
 	    self.tokens.advance();
 
 	    //varName
+	    self.symbolTbl.symbol_buf = self.tokens.identifier();
+	    self.symbolTbl.define();
 	    self.compileIdentifier("compileVarDec varName ?");
 	}
 
@@ -126,11 +147,21 @@ impl CompilationEngine{
 
     pub fn compileSubroutine(&mut self){
 	self.writeLine("<subroutineDec>");
+	self.symbolTbl.startSubroutine();
+	
+	//function | method | constructor
 	self.print_type_token();
 	self.tokens.advance();
-
+	
 	//void | type
 	if self.is_keyword("void") || self.is_type() {
+	    if self.is_keyword("void"){
+		self.void_flag = true;
+	    }
+	    else{
+		self.void_flag = false;
+	    }
+		
 	    self.print_type_token();
 	    self.tokens.advance();
 	}
@@ -140,6 +171,8 @@ impl CompilationEngine{
 	}
 
 	//subroutineName
+	self.symbolTbl.kind_buf = "subroutine".to_string();
+	self.symbolTbl.subroutineName = self.tokens.identifier();
 	self.compileIdentifier("compileSubroutine subroutineName ?");
 
 	//'('
@@ -150,7 +183,7 @@ impl CompilationEngine{
 
 	//')'
 	self.compileSymbol(")", "at compileSubroutine");
-	
+
 	//subroutineBody
 	self.writeLine("<subroutineBody>");
 	
@@ -161,6 +194,10 @@ impl CompilationEngine{
 	while self.is_VarDec(){
 	    self.compileVarDec();
 	}
+
+	//write function Dec
+	self.vmwriter.writeFunction(format!("{}.{}", self.symbolTbl.className, self.symbolTbl.subroutineName),
+				    self.symbolTbl.nVar);
 
 	//statements
 	while self.is_statement(){
@@ -178,11 +215,16 @@ impl CompilationEngine{
     pub fn compileParameterList(&mut self){
 	self.writeLine("<parameterList>");
 	while self.is_type(){
+	    self.symbolTbl.kind_buf = "arg".to_string();
+	    
 	    //type
+	    self.symbolTbl.type_buf = self.tokens.current_token.clone();
 	    self.print_type_token();
 	    self.tokens.advance();
 
 	    //varname
+	    self.symbolTbl.symbol_buf = self.tokens.identifier();
+	    self.symbolTbl.define();
 	    self.compileIdentifier("compileParameterList varName ?");
 	}
 
@@ -193,9 +235,12 @@ impl CompilationEngine{
 	    self.tokens.advance();
 
 	    //type
+	    self.symbolTbl.type_buf = self.tokens.current_token.clone();
 	    self.compileType("compileParameterList type ?");
 
 	    //varname
+	    self.symbolTbl.symbol_buf = self.tokens.identifier();
+	    self.symbolTbl.define();
 	    self.compileIdentifier("compileParameterList varName ?");
 	}
 	
@@ -234,6 +279,12 @@ impl CompilationEngine{
 	self.tokens.advance();
 
 	//varName
+	if self.symbolTbl.isDefined(self.tokens.identifier()){
+	    self.vmwriter.writePush(self.symbolTbl.segmentOf(), self.symbolTbl.indexOf());//segment, index
+	}
+	else{
+	    panic!("undefiend symbol(identifier)")
+	}
 	self.compileIdentifier("compileLet varName?");
 
 	// ('[' expression ']') ?
@@ -246,7 +297,12 @@ impl CompilationEngine{
 
 	    // ']'
 	    self.compileSymbol("]", "at compileLet");
+
+	    //add varName + expression
+	    self.vmwriter.writeArithmetic("ADD".to_string());
 	}
+	//pop addr to pointer 1
+	self.vmwriter.writePop("pointer".to_string(), 1);
 
 	// '='
 	self.compileSymbol("=", "at compileLet");
@@ -257,11 +313,17 @@ impl CompilationEngine{
 	// ';'
 	self.compileSymbol(";", "at compileLet");
 
+	// input expression to varName[expression]
+	self.vmwriter.writePop("that".to_string(), 0);
 	self.writeLine("</letStatement>")
     }
 
     pub fn compileIf(&mut self){
 	self.writeLine("<ifStatement>");
+
+	//count Label num and increment countL
+	let l_num:u16 = self.symbolTbl.countL();
+	
 	//if
 	self.print_type_token();
 	self.tokens.advance();
@@ -275,6 +337,14 @@ impl CompilationEngine{
 	// ')'
 	self.compileSymbol(")", "at compileIf");
 
+	//~expression
+	self.vmwriter.writeArithmetic("NOT".to_string());
+	//if-goto L1
+	self.vmwriter.writeIf(format!("{}.L1_{}",
+				      self.symbolTbl.className.clone(),
+				      l_num));
+	
+
 	// '{'
 	self.compileSymbol("{", "at compileIf");
 
@@ -283,13 +353,23 @@ impl CompilationEngine{
 
 	// '}'
 	self.compileSymbol("}", "at compileIf");
+
+	//goto L2
+	self.vmwriter.writeGoto(format!("{}.L2_{}",
+					self.symbolTbl.className.clone(),
+					l_num));
+
+	//label L1
+	self.vmwriter.writeLabel(format!("{}.L1_{}",
+					 self.symbolTbl.className.clone(),
+					 l_num));
 	
 	//(else {statement})?
 	if self.is_keyword("else"){
 	    //else
 	    self.print_type_token();
 	    self.tokens.advance();
-
+	    
 	    // '{'
 	    self.compileSymbol("{", "at compileIf");
 
@@ -300,14 +380,28 @@ impl CompilationEngine{
 	    self.compileSymbol("}", "at compileIf");
 	}
 	
+	//label L2
+	self.vmwriter.writeLabel(format!("{}.L2_{}",
+					 self.symbolTbl.className.clone(),
+					 l_num));
+
 	self.writeLine("</ifStatement>");
     }
 
     pub fn compileWhile(&mut self){
 	self.writeLine("<whileStatement>");
+
+	//count L1, L2 and increment
+	let l_num:u16 = self.symbolTbl.countL();
+	
 	//while
 	self.print_type_token();
 	self.tokens.advance();
+
+	//label L1
+	self.vmwriter.writeLabel(format!("{}.L1_{}",
+					 self.symbolTbl.className.clone(),
+					 l_num));
 
 	// '('
 	self.compileSymbol("(", "at compileIf");
@@ -318,6 +412,13 @@ impl CompilationEngine{
 	// ')'
 	self.compileSymbol(")", "at compileIf");
 
+	//~expression
+	self.vmwriter.writeArithmetic("NOT".to_string());
+	//if-goto L2
+	self.vmwriter.writeIf(format!("{}.L2_{}",
+				      self.symbolTbl.className.clone(),
+				      l_num));
+
 	// '{'
 	self.compileSymbol("{", "at compileIf");
 
@@ -326,7 +427,17 @@ impl CompilationEngine{
 
 	// '}'
 	self.compileSymbol("}", "at compileIf");
-	
+
+	//goto L1
+	self.vmwriter.writeGoto(format!("{}.L1_{}",
+					self.symbolTbl.className.clone(),
+					l_num));
+
+	//label L2
+	self.vmwriter.writeLabel(format!("{}.L2_{}",
+					 self.symbolTbl.className.clone(),
+					 l_num));
+
 	self.writeLine("</whileStatement>");
     }
     
@@ -347,6 +458,8 @@ impl CompilationEngine{
 
     pub fn compileReturn(&mut self){
 	self.writeLine("<returnStatement>");
+	
+	
 	//return
 	self.print_type_token();
 	self.tokens.advance();
@@ -358,12 +471,18 @@ impl CompilationEngine{
 
 	// ';'
 	self.compileSymbol(";", "at compile return");
+
+	//if void write push constant 0
+	if self.void_flag{
+	    self.vmwriter.writePush("constant".to_string(), 0);
+	}
+	//write return
+	self.vmwriter.writeReturn();
 	
 	self.writeLine("</returnStatement>");
     }
 
     pub fn compileExpression(&mut self){
-	//simple mode. compile identifier
 	self.writeLine("<expression>");
 
 	//term
@@ -374,12 +493,27 @@ impl CompilationEngine{
 	while self.is_op(){
 	    //Op
 	    self.print_type_token();
+	    let Op: String = self.tokens.symbol();
 	    self.tokens.advance();
 
 	    //term
 	    self.compileTerm();
+
+	    //write op
+	    match &Op[..]{
+		"+" => {self.vmwriter.writeArithmetic("ADD".to_string());}
+		"-" => {self.vmwriter.writeArithmetic("SUB".to_string());}
+		"*" => {self.vmwriter.writeCall("Math.multiply".to_string(), 2);}
+		"/" => {self.vmwriter.writeCall("Math.divide".to_string(), 2);}
+		"&" => {self.vmwriter.writeArithmetic("AND".to_string());}
+		"|" => {self.vmwriter.writeArithmetic("OR".to_string());}
+		"<" => {self.vmwriter.writeArithmetic("LT".to_string());}
+		">" => {self.vmwriter.writeArithmetic("GT".to_string());}
+		"=" => {self.vmwriter.writeArithmetic("EQ".to_string());}
+		_ => {panic!("compileExpression undefined op");}
+	    }
+
 	}
-	
 	self.writeLine("</expression>");
     }
 
@@ -399,9 +533,9 @@ impl CompilationEngine{
 
     pub fn compileIdentifier(&mut self, err_msg: &str){
 	if self.is_identifier(){
+	    //advance token
 	    self.print_type_token();
 	    self.tokens.advance();
-	        
 	}
 	else{
 	    println!("current token : {} {}", self.tokens.current_token, &self.tokens.tokenType()[..]);
@@ -421,39 +555,63 @@ impl CompilationEngine{
     }
 
     pub fn compileSubroutineCall(&mut self){
-	//subroutineCall atode
-
-	//subroutineName or (className | varName)
-	self.compileIdentifier("compileSubroutineCall subrtoutineName or className|varName ?");
+	//sakiyomi
+	//subroutineName(expressionList) or (className | varName).subroutineName
+	self.tokens.advance();
 
 	// subroutineName (expressionList)
 	if self.is_symbol("("){
+	    self.tokens.back();
+
+	    // subroutineName
+	    self.symbolTbl.subroutineName = self.tokens.identifier();
+	    self.compileIdentifier("compileSubroutineCall subrtoutineName or className|varName ?");
+	    
 	    // '('
 	    self.compileSymbol("(", "at compileSubroutineCall");
 
 	    //expressionList
-	    self.compileExpressionList();
+	    let nArgs = self.compileExpressionList();
 
 	    // ')'
 	    self.compileSymbol(")", "at compileSubroutineCall");
+
+	    //writecall
+	    self.vmwriter.writeCall(self.symbolTbl.subroutineName.clone(), nArgs);
 	}
 
 	// (className | varName) . subroutineName (expressionList)
 	else if self.is_symbol("."){
+	    self.tokens.back();
+
+	    //(className | varName)
+	    self.symbolTbl.kind_buf = "subroutine".to_string();
+	    self.symbolTbl.symbol_buf = self.tokens.identifier();
+	    let name:String = self.tokens.identifier().clone();
+	    self.compileIdentifier("compileSubroutineCall subrtoutineName or className|varName ?");
+	    
 	    // '.'
 	    self.compileSymbol(".", "at compileSubroutineCall");
 	    
 	    //subroutineName
+	    self.symbolTbl.kind_buf = "subroutine".to_string();
+	    self.symbolTbl.subroutineName = self.tokens.identifier();
 	    self.compileIdentifier("compileSubroutineCall subroutineName?");
 
 	    // '('
 	    self.compileSymbol("(", "at compileSubroutineCall");
 
 	    //expressionList
-	    self.compileExpressionList();
-
+	    let nArgs = self.compileExpressionList();
+	    
 	    // ')'
 	    self.compileSymbol(")", "at compileSubroutineCall");
+
+	    //write call
+	    self.vmwriter.writeCall(format!("{}.{}",
+					    name,
+					    self.symbolTbl.subroutineName.clone()),
+				    nArgs);
 	}
 
 	else{
@@ -467,18 +625,45 @@ impl CompilationEngine{
 
 	//integerConstant
 	if &self.tokens.tokenType()[..] == "INT_CONST"{
-	    self.print_type_token();
+	    print!("<integerConstant>");
+	    print!("{}", self.tokens.intVal());
+	    println!("</integerConstant>");
+	    //write
+	    self.vmwriter.writePush("constant".to_string(), self.tokens.intVal());
+	    //let _ = self.writer.write(format!("<integerConstant> {} </integerConstant>\n",
+					      //self.tokens.intVal()).as_bytes());
 	    self.tokens.advance();
 	}
 
 	//stringConstant
 	else if &self.tokens.tokenType()[..] == "STRING_CONST"{
-	    self.print_type_token();
+	    print!("<stringConstant>");
+	    print!("{}", self.tokens.stringVal());
+	    println!("</stringConstant>");
+	    //let _ = self.writer.write(format!("<stringConstant> {} </stringConstant>\n",
+	    //                                   self.tokens.stringVal()).as_bytes());
+
 	    self.tokens.advance();
 	}
 
 	//keywordConstant
 	else if self.is_keywordConstant(){
+	    match &self.tokens.keyWord()[..]{
+		"TRUE" => {
+		    self.vmwriter.writePush("constant".to_string(), 1);
+		    self.vmwriter.writeArithmetic("NEG".to_string());
+		}
+		"FALSE" => {
+		    self.vmwriter.writePush("constant".to_string(), 0);
+		}
+		"NULL" => {
+		    self.vmwriter.writePush("constant".to_string(), 0);
+		}
+		"THIS" => {
+		    self.vmwriter.writePush("this".to_string(), 0);
+		}
+		_ => {panic!("undefined keywordConst")}
+	    }
 	    self.print_type_token();
 	    self.tokens.advance();
 	}
@@ -499,21 +684,42 @@ impl CompilationEngine{
 	else if self.is_unaryOp(){
 	    // '-' or '~'
 	    self.print_type_token();
+	    let unaryOp:String = self.tokens.identifier();
 	    self.tokens.advance();
 
 	    //term
 	    self.compileTerm();
+
+	    //write unaryOp
+	    match &unaryOp[..]{
+		"-" =>{self.vmwriter.writeArithmetic("NEG".to_string());}
+		"~" =>{self.vmwriter.writeArithmetic("NOT".to_string());}
+		_  =>{panic!("undefined unaryOp")}
+		    
+	    }
 	}
+
 
 	// varName or varName[expression] or subroutineCall
 	//subroutineCall : subroutineName (expressionList)
 	//             or  (className|varName).subrtouineName(expressionList)
 	else if self.is_identifier(){
-	    //varName or subroutineName or className|varName
-	    self.compileIdentifier("compileTerm identifier1 ?");
-
+	    //sakiyomi
+	    self.tokens.advance();
+	    
 	    //varName[expression]
 	    if self.is_symbol("["){
+		self.tokens.back();
+		
+		//varName
+		if self.symbolTbl.isDefined(self.tokens.identifier()){
+		    self.vmwriter.writePush(self.symbolTbl.segmentOf(), self.symbolTbl.indexOf());//segment, index
+		}
+		else{
+		    panic!("undefiend symbol(identifier)")
+		}
+		self.compileIdentifier("compileTerm varName ?");
+		
 		// '['
 		self.compileSymbol("[", "at compileTerm varName[]");
 
@@ -522,53 +728,104 @@ impl CompilationEngine{
 
 		// ']'
 		self.compileSymbol("]", "at compileTerm varName[]");
+
+		//add varName + expression
+		self.vmwriter.writeArithmetic("ADD".to_string());
+
+		//pop addr to pointer 1
+		self.vmwriter.writePop("pointer".to_string(), 1);
+
+		//push varName[exprresion]
+		self.vmwriter.writePush("that".to_string(), 0);
 	    }
 
 	    //subroutineName (expressionList)
 	    else if self.is_symbol("("){
+		self.tokens.back();
+
+		//subroutineName
+		self.symbolTbl.subroutineName = self.tokens.identifier();
+		self.compileIdentifier("compileTerm subroutineName ?");
+		
 		// '('
 		self.compileSymbol("(", "at compileTerm subroutineName()");
 
 		//expressionList
-		self.compileExpressionList();
+		let nArgs = self.compileExpressionList();
 
 		// ')'
 		self.compileSymbol(")", "at compileTerm subroutineName()");
+
+		//writecall
+		self.vmwriter.writeCall(self.symbolTbl.subroutineName.clone(), nArgs);
 	    }
 
 	    //(className|varName).subrtouineName(expressionList)
 	    else if self.is_symbol("."){
+		self.tokens.back();
+
+		//className | varName
+		self.symbolTbl.kind_buf = "subroutine".to_string();
+		let name:String = self.tokens.identifier().clone();
+		self.compileIdentifier("compileTerm className|varName ?");
+		
 		// '.'
 		self.compileSymbol(".", "at compileTerm (className|varName).subroutineName()");
 
 		//sunroutineName
+		self.symbolTbl.kind_buf = "subroutine".to_string();
+		self.symbolTbl.subroutineName = self.tokens.identifier();
 		self.compileIdentifier("compileTerm sunroutineName?");
 
 		// '('
 		self.compileSymbol("(", "at compileTerm (className|varName).subroutineName()");
 
 		//expressionList
-		self.compileExpressionList();
+		let nArgs = self.compileExpressionList();
 
 		// ')'
 		self.compileSymbol(")", "at compileTerm (className|varName).subroutineName()");
+
+		//write call
+		self.vmwriter.writeCall(format!("{}.{}",
+						name,
+						self.symbolTbl.subroutineName.clone()),
+					nArgs);
+	    }
+
+	    //varName
+	    else{
+		self.tokens.back();
+		
+		//varName
+		if self.symbolTbl.isDefined(self.tokens.identifier()){
+		    self.vmwriter.writePush(self.symbolTbl.segmentOf(), self.symbolTbl.indexOf());//segment, index
+		}
+		else{
+		    panic!("undefiend symbol(identifier)")
+		}
+		self.symbolTbl.symbol_print(self.tokens.identifier());
+		self.compileIdentifier("compileTerm varName ?");
 	    }
 
 	}
 	self.writeLine("</term>");	
     }
 
-    pub fn compileExpressionList(&mut self){
+    pub fn compileExpressionList(&mut self) -> u16{
 	self.writeLine("<expressionList>");
+	let mut nargs:u16 = 0;
 
 	//  (expression (, expression)* )?
 	if self.is_term(){
 	    self.compileExpression();
-
+	    nargs += 1;
+	    
 	    while self.is_symbol(","){
 		self.compileSymbol(",", "at compileExpressionList");
 		if self.is_term(){
 		    self.compileExpression();
+		    nargs += 1;
 		}
 		else{
 		    panic!("compileExpressionList term?");
@@ -577,6 +834,7 @@ impl CompilationEngine{
 	    
 	}
 	self.writeLine("</expressionList>");
+	return nargs;
     }
 
     
@@ -646,12 +904,12 @@ impl CompilationEngine{
 	print!("<{}>", ty);
 	print!("{}", token);
 	println!("</{}>", ty);
-	let _ = self.writer.write(format!("<{}> {} </{}>\n", ty, token, ty).as_bytes());
+	//let _ = self.writer.write(format!("<{}> {} </{}>\n", ty, token, ty).as_bytes());
     }
 
     pub fn writeLine(&mut self, word: &str) -> (){
 	println!("{}", word);
-	let _ = self.writer.write(format!("{}\n", word).as_bytes());
+	//let _ = self.writer.write(format!("{}\n", word).as_bytes());
     }
 
     pub fn setFileName(&mut self, input_file_path: &String) -> (){

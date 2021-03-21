@@ -2,6 +2,8 @@ use std::env;
 use std::fs;
 mod JackTokenizer;
 mod CompilationEngine;
+mod SymbolTable;
+mod VMWriter;
 
 
 
@@ -20,11 +22,10 @@ fn main(){
     let mut comp_engine_list = Vec::new();
     for i in 0..n{
 	tokens_list.push(JackTokenizer::JackTokenizer::new(&list[i]));
-	let out_file_path = list[i].replace(".jack", ".xml");
+	let out_file_path = list[i].replace(".jack", ".vm");
 	comp_engine_list.push(CompilationEngine::CompilationEngine::new(tokens_list[i].clone(), out_file_path));
     }
 
-    
     //write xml file.
     for i in 0..n{
 	comp_engine_list[i].startCompile();
