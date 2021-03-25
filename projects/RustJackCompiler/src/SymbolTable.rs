@@ -4,6 +4,7 @@ pub struct SymbolTable{
     pub class_table: HashMap<String, (String, String, u16)>,
     pub sub_table: HashMap<String, (String, String, u16)>,
     pub current_symbol: (String, String, u16),
+    // (kind, type, index)
 
     pub className: String,
     pub subroutineName: String,
@@ -22,13 +23,10 @@ pub struct SymbolTable{
 
 impl SymbolTable{
     pub fn new() -> SymbolTable{
-	let mut table_init =  HashMap::new();
-		
 	SymbolTable{
-	    class_table: table_init.clone(),
-	    sub_table: table_init.clone(),
+	    class_table: HashMap::new(),
+	    sub_table: HashMap::new(),
 	    current_symbol: ("".to_string(), "".to_string(), 0),
-	    
 	    className: "".to_string(),
 	    subroutineName: "".to_string(),
 	    kind_buf: "".to_string(),
@@ -38,18 +36,7 @@ impl SymbolTable{
 	    nField: 0,
 	    nArg: 0,
 	    nVar: 0,
-
 	    nL: 0,
-	}
-    }
-
-    pub fn symbol_print(&mut self, name: String) -> (){
-	/*symbol table test*/
-	if self.isDefined(name.clone()){
-	    println!("{}, {}, {}", self.kindOf(), self.typeOf(), self.indexOf());
-	}
-	else{
-	    panic!("undefined identifier")
 	}
     }
 
@@ -58,7 +45,6 @@ impl SymbolTable{
 	self.sub_table = table_init.clone();
 	self.nArg = 0;
 	self.nVar = 0;
-	self.nL = 0;
     }
 
     pub fn define(&mut self) -> (){
@@ -98,7 +84,7 @@ impl SymbolTable{
 	}
 	else{
 	    if self.class_table.get(&name.to_string()).is_some(){
-		self.current_symbol = self.sub_table.get(&name.to_string()).unwrap().clone();
+		self.current_symbol = self.class_table.get(&name.to_string()).unwrap().clone();
 		true
 	    }
 	    else{
@@ -122,7 +108,7 @@ impl SymbolTable{
     pub fn segmentOf(&self) -> String{
 	match &self.current_symbol.0.clone()[..]{
 	    "static" => {"static".to_string()}
-	    "field" => {"field".to_string()}
+	    "field" => {"this".to_string()}
 	    "arg" => {"argument".to_string()}
 	    "var" =>{"local".to_string()}
 	    _ => {panic!("undefined kind of segment")}

@@ -71,7 +71,6 @@ impl JackTokenizer {
 	    "STRING_CONST".to_string()
 	}
 	else{
-	    //it should be panic if not identified IDENTIFER
 	    "IDENTIFIER".to_string()
 	}
     }
@@ -187,37 +186,6 @@ pub fn tokenize(lines: Vec::<String>) -> Vec<String>{
     }
 
     tokens
-}
-
-pub fn split_symbol(word: &str) -> Vec<String>{
-    let mut buf_string: String = "".to_string();
-    let mut words_splited_symb = Vec::<String>::new();
-
-    //read by 1 character
-    for c in word.chars(){
-	//if SYMBOL_LIST.contains(c){
-	if  SYMBOL_LIST.iter().find(|&&x| x == &c.to_string()).is_some(){
-	    //push token
-	    if buf_string.len() > 0{
-		words_splited_symb.push(buf_string.clone());
-	    }
-	    //push symbol to tokens
-	    words_splited_symb.push(c.to_string());
-	    //reset buf
-	    buf_string = "".to_string();
-	}
-	//if c is not symbol, push c to buf strings
-	else {
-	    buf_string.push(c);
-	}
-    }
-    //push token
-    if buf_string.len() > 0{
-	words_splited_symb.push(buf_string.clone());
-    }
-
-    //return
-    words_splited_symb
 }
 
 pub fn line_to_tokens(line: &str) -> Vec<String>{

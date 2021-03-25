@@ -7,7 +7,7 @@ pub struct VMWriter{
 
 impl VMWriter{
     pub fn new(out_file_path: String) -> VMWriter{
-	let mut trimed: Vec<&str> = out_file_path.split("/").collect();
+	let trimed: Vec<&str> = out_file_path.split("/").collect();
 	println!("VMWriter -> {}", trimed.last().unwrap());
 
 	VMWriter{

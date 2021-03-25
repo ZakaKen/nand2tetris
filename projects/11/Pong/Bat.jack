@@ -39,7 +39,7 @@ class Bat {
     /** Shows the bat. */
     method void show() {
         do Screen.setColor(true);
-        do draw();
+	do draw();
         return;
     }
 

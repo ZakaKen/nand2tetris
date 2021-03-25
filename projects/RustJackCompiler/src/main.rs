@@ -10,12 +10,10 @@ mod VMWriter;
 fn main(){
     //Get args
     let result = GetArgs();
-    let name: String = result.0; //dir or file path
     let n: usize = result.1; //num of .jack files
     let list: Vec<String> = result.2; //list of path to .jack files (Ex [dir/Xxx.jack, dir/Yyy.jack])
 
     //init writer instance
-    //let mut compilation_engine = CompilationEngine::CompilationEngine::new(name + ".xml");
 
     //init JackTokenizer list = [tokenizer[Aaa.jack], tokenizer[Bbb.jack] ...]
     let mut tokens_list = Vec::new();
