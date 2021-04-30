@@ -1,0 +1,800 @@
+function Screen.init 0
+push constant 1
+neg
+pop static 0
+push constant 16384
+pop static 1
+push constant 17
+call Array.new 1
+pop static 2
+push static 2
+push constant 0
+add
+push constant 1
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 1
+add
+push constant 2
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 2
+add
+push constant 4
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 3
+add
+push constant 8
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 4
+add
+push constant 16
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 5
+add
+push constant 32
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 6
+add
+push constant 64
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 7
+add
+push constant 128
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 8
+add
+push constant 256
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 9
+add
+push constant 512
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 10
+add
+push constant 1024
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 11
+add
+push constant 2048
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 12
+add
+push constant 4096
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 13
+add
+push constant 8192
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 14
+add
+push constant 16384
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 15
+add
+push constant 32767
+not
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push constant 16
+add
+push constant 0
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 0
+return
+function Screen.clearScreen 1
+push constant 0
+call Screen.setColor 1
+pop temp 0
+label Screen.L1_0
+push local 0
+push constant 216
+lt
+not
+if-goto Screen.L2_0
+push constant 0
+push local 0
+push constant 511
+push local 0
+call Screen.drawLine 4
+pop temp 0
+push local 0
+push constant 1
+add
+pop local 0
+goto Screen.L1_0
+label Screen.L2_0
+push constant 1
+neg
+call Screen.setColor 1
+pop temp 0
+push constant 0
+return
+function Screen.setColor 0
+push argument 0
+pop static 0
+push constant 0
+return
+function Screen.drawPixel 3
+push static 1
+push argument 1
+push constant 32
+call Math.multiply 2
+add
+push argument 0
+push constant 16
+call Math.divide 2
+add
+pop local 2
+push local 2
+call Memory.peek 1
+pop local 0
+push argument 0
+push constant 15
+and
+pop local 1
+push static 0
+not
+if-goto Screen.L1_1
+push local 0
+push static 2
+push local 1
+add
+pop pointer 1
+push that 0
+or
+pop local 0
+goto Screen.L2_1
+label Screen.L1_1
+push local 0
+push static 2
+push local 1
+add
+pop pointer 1
+push that 0
+not
+and
+pop local 0
+label Screen.L2_1
+push local 2
+push local 0
+call Memory.poke 2
+pop temp 0
+push constant 0
+return
+function Screen.drawLine 7
+push constant 0
+pop local 0
+push constant 0
+pop local 1
+push constant 0
+pop local 2
+push argument 3
+push argument 1
+sub
+pop local 4
+push local 4
+push constant 0
+eq
+not
+if-goto Screen.L1_2
+push argument 0
+push argument 2
+push argument 1
+call Screen.drawHline 3
+pop temp 0
+push constant 0
+return
+goto Screen.L2_2
+label Screen.L1_2
+label Screen.L2_2
+push constant 0
+pop local 6
+push local 4
+push constant 0
+lt
+not
+if-goto Screen.L1_3
+push constant 1
+neg
+pop local 6
+goto Screen.L2_3
+label Screen.L1_3
+label Screen.L2_3
+push local 4
+call Math.abs 1
+pop local 4
+push argument 2
+push argument 0
+sub
+pop local 3
+push local 3
+push constant 0
+eq
+not
+if-goto Screen.L1_4
+push local 0
+push constant 1
+add
+pop local 0
+goto Screen.L2_4
+label Screen.L1_4
+label Screen.L2_4
+push constant 0
+pop local 5
+push local 3
+push constant 0
+lt
+not
+if-goto Screen.L1_5
+push constant 1
+neg
+pop local 5
+goto Screen.L2_5
+label Screen.L1_5
+label Screen.L2_5
+push local 3
+call Math.abs 1
+pop local 3
+push argument 0
+push argument 1
+call Screen.drawPixel 2
+pop temp 0
+label Screen.L1_6
+push local 1
+push local 3
+eq
+push local 2
+push local 4
+eq
+and
+not
+not
+if-goto Screen.L2_6
+push local 0
+push constant 0
+lt
+not
+if-goto Screen.L1_7
+push local 0
+push local 4
+add
+pop local 0
+push local 1
+push constant 1
+add
+pop local 1
+goto Screen.L2_7
+label Screen.L1_7
+push local 0
+push local 3
+sub
+pop local 0
+push local 2
+push constant 1
+add
+pop local 2
+label Screen.L2_7
+push local 5
+push local 6
+and
+not
+if-goto Screen.L1_8
+push argument 0
+push local 1
+sub
+push argument 1
+push local 2
+sub
+call Screen.drawPixel 2
+pop temp 0
+goto Screen.L2_8
+label Screen.L1_8
+label Screen.L2_8
+push local 5
+not
+push local 6
+and
+not
+if-goto Screen.L1_9
+push argument 0
+push local 1
+add
+push argument 1
+push local 2
+sub
+call Screen.drawPixel 2
+pop temp 0
+goto Screen.L2_9
+label Screen.L1_9
+label Screen.L2_9
+push local 5
+push local 6
+not
+and
+not
+if-goto Screen.L1_10
+push argument 0
+push local 1
+sub
+push argument 1
+push local 2
+add
+call Screen.drawPixel 2
+pop temp 0
+goto Screen.L2_10
+label Screen.L1_10
+label Screen.L2_10
+push local 5
+not
+push local 6
+not
+and
+not
+if-goto Screen.L1_11
+push argument 0
+push local 1
+add
+push argument 1
+push local 2
+add
+call Screen.drawPixel 2
+pop temp 0
+goto Screen.L2_11
+label Screen.L1_11
+label Screen.L2_11
+goto Screen.L1_6
+label Screen.L2_6
+push constant 0
+return
+function Screen.drawRectangle 0
+push argument 0
+push argument 1
+push argument 2
+push argument 1
+call Screen.drawLine 4
+pop temp 0
+label Screen.L1_12
+push argument 1
+push argument 3
+lt
+not
+if-goto Screen.L2_12
+push argument 1
+push constant 1
+add
+pop argument 1
+push argument 0
+push argument 1
+push argument 2
+push argument 1
+call Screen.drawLine 4
+pop temp 0
+goto Screen.L1_12
+label Screen.L2_12
+push constant 0
+return
+function Screen.drawCircle 3
+push argument 2
+pop local 1
+push constant 0
+pop local 2
+push constant 3
+push constant 2
+push argument 2
+call Math.multiply 2
+sub
+pop local 0
+push argument 2
+push constant 181
+gt
+not
+if-goto Screen.L1_13
+push constant 0
+return
+goto Screen.L2_13
+label Screen.L1_13
+label Screen.L2_13
+push argument 0
+push local 1
+sub
+push argument 1
+push local 2
+add
+push argument 0
+push local 1
+add
+push argument 1
+push local 2
+add
+call Screen.drawLine 4
+pop temp 0
+push argument 0
+push local 1
+sub
+push argument 1
+push local 2
+sub
+push argument 0
+push local 1
+add
+push argument 1
+push local 2
+sub
+call Screen.drawLine 4
+pop temp 0
+label Screen.L1_14
+push local 2
+push local 1
+gt
+not
+not
+if-goto Screen.L2_14
+push local 0
+push constant 0
+lt
+not
+if-goto Screen.L1_15
+push local 0
+push constant 4
+push local 2
+call Math.multiply 2
+add
+push constant 6
+add
+pop local 0
+push local 2
+push constant 1
+add
+pop local 2
+goto Screen.L2_15
+label Screen.L1_15
+push local 0
+push constant 4
+push local 1
+call Math.multiply 2
+sub
+push constant 4
+push local 2
+call Math.multiply 2
+add
+push constant 10
+add
+pop local 0
+push local 1
+push constant 1
+sub
+pop local 1
+push local 2
+push constant 1
+add
+pop local 2
+label Screen.L2_15
+push argument 0
+push local 1
+sub
+push argument 1
+push local 2
+add
+push argument 0
+push local 1
+add
+push argument 1
+push local 2
+add
+call Screen.drawLine 4
+pop temp 0
+push argument 0
+push local 1
+sub
+push argument 1
+push local 2
+sub
+push argument 0
+push local 1
+add
+push argument 1
+push local 2
+sub
+call Screen.drawLine 4
+pop temp 0
+push argument 0
+push local 2
+sub
+push argument 1
+push local 1
+add
+push argument 0
+push local 2
+add
+push argument 1
+push local 1
+add
+call Screen.drawLine 4
+pop temp 0
+push argument 0
+push local 2
+sub
+push argument 1
+push local 1
+sub
+push argument 0
+push local 2
+add
+push argument 1
+push local 1
+sub
+call Screen.drawLine 4
+pop temp 0
+goto Screen.L1_14
+label Screen.L2_14
+push constant 0
+return
+function Screen.drawHline 8
+push argument 1
+push argument 0
+lt
+not
+if-goto Screen.L1_16
+push argument 0
+pop local 0
+push argument 1
+pop argument 0
+push local 0
+pop argument 1
+goto Screen.L2_16
+label Screen.L1_16
+label Screen.L2_16
+push argument 0
+push constant 16
+call Math.divide 2
+pop local 1
+push argument 1
+push constant 16
+call Math.divide 2
+pop local 2
+push local 2
+push local 1
+sub
+pop local 3
+push argument 2
+push constant 32
+call Math.multiply 2
+pop argument 2
+push static 1
+push argument 2
+add
+push local 1
+add
+pop local 7
+push local 3
+push constant 0
+eq
+not
+if-goto Screen.L1_17
+push argument 1
+push constant 15
+and
+pop local 4
+push static 2
+push local 4
+push constant 1
+add
+add
+pop pointer 1
+push that 0
+push constant 1
+sub
+pop local 5
+push argument 0
+push constant 15
+and
+pop local 4
+push local 5
+push static 2
+push local 4
+add
+pop pointer 1
+push that 0
+push constant 1
+sub
+sub
+pop local 5
+push static 0
+not
+if-goto Screen.L1_18
+push local 5
+push local 7
+call Memory.peek 1
+or
+pop local 5
+goto Screen.L2_18
+label Screen.L1_18
+push local 5
+not
+push local 7
+call Memory.peek 1
+and
+pop local 5
+label Screen.L2_18
+push local 7
+push local 5
+call Memory.poke 2
+pop temp 0
+push constant 0
+return
+goto Screen.L2_17
+label Screen.L1_17
+label Screen.L2_17
+push static 0
+not
+if-goto Screen.L1_19
+push constant 0
+not
+pop local 5
+goto Screen.L2_19
+label Screen.L1_19
+push constant 0
+pop local 5
+label Screen.L2_19
+push constant 1
+pop local 6
+label Screen.L1_20
+push local 6
+push local 3
+lt
+not
+if-goto Screen.L2_20
+push local 7
+push local 6
+add
+push local 5
+call Memory.poke 2
+pop temp 0
+push local 6
+push constant 1
+add
+pop local 6
+goto Screen.L1_20
+label Screen.L2_20
+push argument 0
+push constant 15
+and
+pop local 4
+push static 2
+push local 4
+add
+pop pointer 1
+push that 0
+push constant 1
+sub
+not
+pop local 5
+push static 0
+not
+if-goto Screen.L1_21
+push local 5
+push local 7
+call Memory.peek 1
+or
+pop local 5
+goto Screen.L2_21
+label Screen.L1_21
+push local 5
+not
+push local 7
+call Memory.peek 1
+and
+pop local 5
+label Screen.L2_21
+push local 7
+push local 5
+call Memory.poke 2
+pop temp 0
+push argument 1
+push constant 15
+and
+pop local 4
+push static 2
+push local 4
+push constant 1
+add
+add
+pop pointer 1
+push that 0
+push constant 1
+sub
+pop local 5
+push static 0
+not
+if-goto Screen.L1_22
+push local 5
+push local 7
+push local 3
+add
+call Memory.peek 1
+or
+pop local 5
+goto Screen.L2_22
+label Screen.L1_22
+push local 5
+not
+push local 7
+push local 3
+add
+call Memory.peek 1
+and
+pop local 5
+label Screen.L2_22
+push local 7
+push local 3
+add
+push local 5
+call Memory.poke 2
+pop temp 0
+push constant 0
+return

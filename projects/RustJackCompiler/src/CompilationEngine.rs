@@ -539,7 +539,12 @@ impl CompilationEngine{
 	// ';'
 	self.compileSymbol(";", "at compile return");
 
-	//if void write push constant 0
+	/*
+	if (self.symbolTbl.kind_buf == "method".to_string()){
+	    self.vmwriter.writePush("pointer".to_string(), 0);
+	}
+	*/
+        //if function void write push constant 0
 	if self.void_flag{
 	    self.vmwriter.writePush("constant".to_string(), 0);
 	}
@@ -660,14 +665,14 @@ impl CompilationEngine{
 	    // kind: method  (another class)
 	    // if varName.subroutineName(expressionList)
 	    if self.symbolTbl.isDefined(self.tokens.identifier()){
-		class_buf = self.symbolTbl.typeOf();
+		let class_buf1 = self.symbolTbl.typeOf();
 		self.compileIdentifier("compileSubroutineCall subrtoutineName or className|varName ?");
 		
 		// '.'
 		self.compileSymbol(".", "at compileSubroutineCall");
 		
 		//subroutineName
-		self.symbolTbl.subroutineName = self.tokens.identifier();
+		let subroutineName1 = self.tokens.identifier();
 		self.compileIdentifier("compileSubroutineCall subroutineName?");
 
 		//push THIS as argment 0
@@ -684,20 +689,20 @@ impl CompilationEngine{
 		self.compileSymbol(")", "at compileSubroutineCall");
 		
 		//write call
-		self.vmwriter.writeCall(format!("{}.{}",class_buf,self.symbolTbl.subroutineName.clone()),nArgs+1);
+		self.vmwriter.writeCall(format!("{}.{}",class_buf1,subroutineName1),nArgs+1);
 	    }
 
 	    //kind function
 	    //if className
 	    else{
-		class_buf = self.tokens.identifier();
+		let class_buf2 = self.tokens.identifier();
 		self.compileIdentifier("compileSubroutineCall subrtoutineName or className|varName ?");
 
 		// '.'
 		self.compileSymbol(".", "at compileSubroutineCall");
 		
 		//subroutineName
-		self.symbolTbl.subroutineName = self.tokens.identifier();
+		let subroutineName2 = self.tokens.identifier();
 		self.compileIdentifier("compileSubroutineCall subroutineName?");
 
 		// '('
@@ -710,7 +715,7 @@ impl CompilationEngine{
 		self.compileSymbol(")", "at compileSubroutineCall");
 
 		//write call
-		self.vmwriter.writeCall(format!("{}.{}",class_buf,self.symbolTbl.subroutineName.clone()),nArgs);
+		self.vmwriter.writeCall(format!("{}.{}",class_buf2,subroutineName2),nArgs);
 	    }
 	}
 

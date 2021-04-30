@@ -1,0 +1,120 @@
+function Keyboard.init 0
+push constant 0
+return
+function Keyboard.keyPressed 0
+push constant 24576
+call Memory.peek 1
+return
+function Keyboard.readChar 2
+call Keyboard.keyPressed 0
+pop local 1
+label Keyboard.L1_0
+push local 1
+push constant 0
+eq
+not
+if-goto Keyboard.L2_0
+call Keyboard.keyPressed 0
+pop local 1
+goto Keyboard.L1_0
+label Keyboard.L2_0
+push local 1
+pop local 0
+label Keyboard.L1_1
+push local 1
+push constant 0
+eq
+not
+not
+if-goto Keyboard.L2_1
+call Keyboard.keyPressed 0
+pop local 1
+goto Keyboard.L1_1
+label Keyboard.L2_1
+push local 0
+call Output.printChar 1
+pop temp 0
+push local 0
+return
+function Keyboard.readLine 2
+push constant 1
+call String.new 1
+pop local 0
+push argument 0
+call Output.printString 1
+pop temp 0
+call Keyboard.readChar 0
+pop local 1
+label Keyboard.L1_2
+push local 1
+call String.newLine 0
+eq
+not
+not
+if-goto Keyboard.L2_2
+push local 1
+call String.backSpace 0
+eq
+not
+if-goto Keyboard.L1_3
+push local 0
+call String.eraseLastChar 1
+pop temp 0
+goto Keyboard.L2_3
+label Keyboard.L1_3
+push local 0
+push local 1
+call Keyboard.appendChar_dinamic 2
+pop local 0
+label Keyboard.L2_3
+call Keyboard.readChar 0
+pop local 1
+goto Keyboard.L1_2
+label Keyboard.L2_2
+push local 0
+return
+function Keyboard.readInt 1
+push argument 0
+call Keyboard.readLine 1
+pop local 0
+push local 0
+call String.intValue 1
+return
+function Keyboard.appendChar_dinamic 3
+push argument 0
+call String.length 1
+pop local 0
+push constant 0
+pop local 1
+push local 0
+push constant 1
+add
+call String.new 1
+pop local 2
+label Keyboard.L1_4
+push local 1
+push local 0
+lt
+not
+if-goto Keyboard.L2_4
+push local 2
+push argument 0
+push local 1
+call String.charAt 2
+call String.appendChar 2
+pop temp 0
+push local 1
+push constant 1
+add
+pop local 1
+goto Keyboard.L1_4
+label Keyboard.L2_4
+push local 2
+push argument 1
+call String.appendChar 2
+pop temp 0
+push argument 0
+call String.dispose 1
+pop temp 0
+push local 2
+return

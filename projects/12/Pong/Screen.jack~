@@ -1,0 +1,252 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Screen.jack
+
+/**
+ * A library of functions for displaying graphics on the screen.
+ * The Hack physical screen consists of 256 rows (indexed 0..255, top to bottom)
+ * of 512 pixels each (indexed 0..511, left to right). The top left pixel on 
+ * the screen is indexed (0,0).
+ */
+class Screen {
+    static boolean COLOR;
+    static int SCREEN;
+    static Array twoToThe;
+    
+    /** Initializes the Screen. */
+    function void init() {
+       let COLOR = true;
+       let SCREEN = 16384;
+       let twoToThe = Array.new(17);
+       let twoToThe[0] = 1;
+       let twoToThe[1] = 2;
+       let twoToThe[2] = 4;
+       let twoToThe[3] = 8;
+       let twoToThe[4] = 16;
+       let twoToThe[5] = 32;
+       let twoToThe[6] = 64;
+       let twoToThe[7] = 128;
+       let twoToThe[8] = 256;
+       let twoToThe[9] = 512;
+       let twoToThe[10] = 1024;
+       let twoToThe[11] = 2048;
+       let twoToThe[12] = 4096;
+       let twoToThe[13] = 8192;
+       let twoToThe[14] = 16384;
+       let twoToThe[15] = ~32767;
+       let twoToThe[16] = 0;
+       
+       return;
+    }
+
+    /** Erases the entire screen. */
+    function void clearScreen() {
+       var int i;
+       do Screen.setColor(false);
+       while(i<216){
+          do Screen.drawLine(0, i, 511, i);
+	  let i = i+1;
+       }
+       do Screen.setColor(true);
+       return;
+    }
+
+    /** Sets the current color, to be used for all subsequent drawXXX commands.
+     *  Black is represented by true, white by false. */
+    function void setColor(boolean b) {
+       let COLOR = b;
+       return;
+    }
+
+    /** Draws the (x,y) pixel, using the current color. */
+    function void drawPixel(int x, int y) {
+       var int pix, i;
+       let pix = Memory.peek((SCREEN + ((y*32) + (x/16))));
+       let i = x - ((x/16)*16);
+       if(COLOR){
+          let pix = (pix|twoToThe[i]);
+       }
+       else{
+          let pix = (pix&(~twoToThe[i]));
+       }
+       do Memory.poke((SCREEN + ((y*32) + (x/16))), pix);
+       return;
+    }
+
+    /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
+    function void drawLine(int x1, int y1, int x2, int y2) {
+       var int adyMinusbdx, a, b, dx, dy;
+       var boolean neg_dx, neg_dy;
+
+       let adyMinusbdx = 0;
+       let a = 0;
+       let b = 0;
+       
+       let dy = y2-y1;
+       if(dy=0){
+          do Screen.drawHline(x1, x2, y1);
+	  return;
+       }
+       let neg_dy = false;
+       if(dy<0){
+          let neg_dy = true;
+       }
+       let dy = Math.abs(dy);
+
+       let dx = x2-x1;
+       if(dx=0){
+          let adyMinusbdx = adyMinusbdx+1;
+       }
+       let neg_dx = false;
+       if(dx<0){
+          let neg_dx = true;
+       }
+       let dx = Math.abs(dx);
+
+
+       do Screen.drawPixel(x1, y1);
+       while(~((a=dx)&(b=dy))){
+          if(adyMinusbdx <0){
+	     let adyMinusbdx = adyMinusbdx + dy;
+	     let a = a+1;
+	  }
+	  else{
+	     let adyMinusbdx = adyMinusbdx - dx;
+	     let b = b+1;
+	  }
+	  
+	  if((neg_dx)&(neg_dy)){
+	     do Screen.drawPixel(x1-a, y1-b);
+	  }
+	  if((~neg_dx)&(neg_dy)){
+	     do Screen.drawPixel(x1+a, y1-b);
+	  }
+	  if((neg_dx)&(~neg_dy)){
+	     do Screen.drawPixel(x1-a, y1+b);
+	  }
+	  if((~neg_dx)&(~neg_dy)){
+	     do Screen.drawPixel(x1+a, y1+b);
+	  }
+	  
+	  
+       }
+       return;
+    }
+
+    /** Draws a filled rectangle whose top left corner is (x1, y1)
+     * and bottom right corner is (x2,y2), using the current color. */
+    function void drawRectangle(int x1, int y1, int x2, int y2) {
+       var int y, dy, i;
+
+       let y = y1;
+       let dy = y2-y1;
+       do Screen.drawLine(x1, y, x2, y);
+       while(i<dy){
+	  let y = y+1;
+	  do Screen.drawHline(x1, x2, y);
+	  let i = i+1;
+       }
+       return;
+    }
+
+    /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
+    function void drawCircle(int x, int y, int r) {
+       var int D, a, b;
+       let a = r;
+       let b = 0;
+       let D = 3 - (2*r);
+       if(r>181){
+          return;
+       }
+
+
+       do Screen.drawLine((x-a), (y+b), (x+a), (y+b));
+       do Screen.drawLine((x-a), (y-b), (x+a), (y-b));
+       while(~(b>a)){
+          if(D<0){
+             let D = D + (4*b) + 6;
+      	     let b = b+1;
+          }
+          else{
+             let D = D -(4*a) + (4*b) + 10;
+	     let a = a-1;
+	     let b = b+1;
+          }
+	  do Screen.drawLine((x-a), (y+b), (x+a), (y+b));
+	  do Screen.drawLine((x-a), (y-b), (x+a), (y-b));
+          do Screen.drawLine((x-b), (y+a), (x+b), (y+a));
+	  do Screen.drawLine((x-b), (y-a), (x+b), (y-a));
+       }
+
+       return;
+    }
+    
+    function void drawHline(int x1, int x2, int y){
+       var int buf, begin, end, dx_word, remain_begin, remain_end, pix, i;
+       if(x2<x1){
+          let buf = x1;
+          let x1 = x2;
+          let x2 = buf;
+       }
+
+       
+       let begin = x1/16;
+       let remain_begin = x1-(begin*16);
+       let end = x2/16;
+       let remain_end = x2-(end*16);
+       let dx_word = end-begin;
+       let y = y*32;
+
+
+       if(dx_word=0){
+	  let pix = twoToThe[remain_end+1]-1;
+	  let pix = pix - (twoToThe[remain_begin]-1);
+	  if(COLOR){
+	     let pix = (pix|Memory.peek(SCREEN + (y + begin)));
+	  }
+	  else{
+	     let pix = ((~pix)&Memory.peek(SCREEN + (y + begin)));
+	  }
+	  do Memory.poke((SCREEN + (y + begin)), pix);
+	  return;
+       }
+       
+       //midth
+       if(COLOR){
+          let pix = ~0;
+       }
+       else{
+          let pix = 0;
+       }
+       let i = 1;
+       while(i<dx_word){
+          do Memory.poke((SCREEN + (y + (begin+i))), pix);    
+          let i=i+1; 
+       }
+
+       //edge_left
+       let pix = ~(twoToThe[remain_begin]-1);
+       if(COLOR){
+          let pix = (pix|Memory.peek(SCREEN + (y + begin)));
+       }
+       else{
+          let pix = ((~pix)&Memory.peek(SCREEN + (y + begin)));
+       }
+       do Memory.poke((SCREEN + (y + begin)), pix);    
+       
+
+       //edge_right
+       let pix = twoToThe[remain_end+1]-1;
+       if(COLOR){
+          let pix = (pix|Memory.peek(SCREEN + (y + end)));
+       }
+       else{
+          let pix = ((~pix)&Memory.peek(SCREEN + (y + end)));
+       }
+       do Memory.poke((SCREEN + (y + end)), pix);    
+       
+       return;
+    }
+
+}
